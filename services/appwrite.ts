@@ -8,38 +8,12 @@
 import { Client, Databases, Query } from "appwrite";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import { AppError, ErrorCode, IAppwriteService, Naat } from "../types";
-
-/**
- * Timeout duration for all API requests (10 seconds as per requirements)
- */
-const API_TIMEOUT = 10000;
-
-/**
- * Creates a promise that rejects after the specified timeout
- */
-function createTimeoutPromise(timeoutMs: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(
-        new AppError(
-          "Request timed out. Please check your connection and try again.",
-          ErrorCode.NETWORK_ERROR,
-          true
-        )
-      );
-    }, timeoutMs);
-  });
-}
-
-/**
- * Wraps a promise with a timeout mechanism
- */
-async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number = API_TIMEOUT
-): Promise<T> {
-  return Promise.race([promise, createTimeoutPromise(timeoutMs)]);
-}
+import {
+  DEFAULT_TIMEOUT,
+  logError,
+  withCacheFallback,
+  wrapError,
+} from "../utils/errorHandling";
 
 /**
  * AppwriteService class handles all Appwrite database operations
@@ -90,21 +64,35 @@ export class AppwriteService implements IAppwriteService {
   async getNaats(limit: number = 20, offset: number = 0): Promise<Naat[]> {
     this.initialize();
 
+    const cacheKey = `naats_${limit}_${offset}`;
+
     try {
-      const response = await withTimeout(
-        this.database.listDocuments({
-          databaseId: appwriteConfig.databaseId,
-          collectionId: appwriteConfig.naatsCollectionId,
-          queries: [
-            Query.limit(limit),
-            Query.offset(offset),
-            Query.orderDesc("uploadDate"),
-          ],
-        })
+      const response = await withCacheFallback(
+        () =>
+          this.database.listDocuments({
+            databaseId: appwriteConfig.databaseId,
+            collectionId: appwriteConfig.naatsCollectionId,
+            queries: [
+              Query.limit(limit),
+              Query.offset(offset),
+              Query.orderDesc("uploadDate"),
+            ],
+          }),
+        cacheKey,
+        {
+          timeoutMs: DEFAULT_TIMEOUT,
+          maxAttempts: 3,
+        }
       );
 
       return response.documents as unknown as Naat[];
     } catch (error) {
+      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+        context: "getNaats",
+        limit,
+        offset,
+      });
+
       if (error instanceof AppError) {
         throw error;
       }
@@ -134,17 +122,30 @@ export class AppwriteService implements IAppwriteService {
       );
     }
 
+    const cacheKey = `naat_${id}`;
+
     try {
-      const response = await withTimeout(
-        this.database.getDocument({
-          databaseId: appwriteConfig.databaseId,
-          collectionId: appwriteConfig.naatsCollectionId,
-          documentId: id,
-        })
+      const response = await withCacheFallback(
+        () =>
+          this.database.getDocument({
+            databaseId: appwriteConfig.databaseId,
+            collectionId: appwriteConfig.naatsCollectionId,
+            documentId: id,
+          }),
+        cacheKey,
+        {
+          timeoutMs: DEFAULT_TIMEOUT,
+          maxAttempts: 3,
+        }
       );
 
       return response as unknown as Naat;
     } catch (error) {
+      logError(wrapError(error, ErrorCode.API_ERROR), {
+        context: "getNaatById",
+        id,
+      });
+
       if (error instanceof AppError) {
         throw error;
       }
@@ -170,20 +171,33 @@ export class AppwriteService implements IAppwriteService {
       return [];
     }
 
+    const cacheKey = `search_${query}`;
+
     try {
-      const response = await withTimeout(
-        this.database.listDocuments({
-          databaseId: appwriteConfig.databaseId,
-          collectionId: appwriteConfig.naatsCollectionId,
-          queries: [
-            Query.search("title", query),
-            Query.orderDesc("uploadDate"),
-          ],
-        })
+      const response = await withCacheFallback(
+        () =>
+          this.database.listDocuments({
+            databaseId: appwriteConfig.databaseId,
+            collectionId: appwriteConfig.naatsCollectionId,
+            queries: [
+              Query.search("title", query),
+              Query.orderDesc("uploadDate"),
+            ],
+          }),
+        cacheKey,
+        {
+          timeoutMs: DEFAULT_TIMEOUT,
+          maxAttempts: 3,
+        }
       );
 
       return response.documents as unknown as Naat[];
     } catch (error) {
+      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+        context: "searchNaats",
+        query,
+      });
+
       if (error instanceof AppError) {
         throw error;
       }

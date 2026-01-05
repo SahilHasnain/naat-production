@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { PlaybackPosition } from "../types";
+import type { IStorageService, PlaybackPosition } from "../types";
+import { AppError, ErrorCode } from "../types";
+import { logError, wrapError } from "../utils/errorHandling";
 
 /**
  * Storage keys used by the service
@@ -18,12 +20,12 @@ const MAX_RECENT_POSITIONS = 10;
  * Service for managing local storage operations
  * Handles playback position persistence using AsyncStorage
  */
-export class StorageService implements StorageService {
+export class StorageService implements IStorageService {
   /**
    * Save playback position for a specific naat
    * @param naatId - Unique identifier for the naat
    * @param position - Playback position in seconds
-   * @throws Error if storage operation fails
+   * @throws AppError if storage operation fails
    */
   async savePlaybackPosition(naatId: string, position: number): Promise<void> {
     try {
@@ -37,8 +39,17 @@ export class StorageService implements StorageService {
       await AsyncStorage.setItem(key, JSON.stringify(data));
       await this.updateRecentPositions(naatId);
     } catch (error) {
-      console.error("Failed to save playback position:", error);
-      throw new Error(`Failed to save playback position for naat ${naatId}`);
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "savePlaybackPosition",
+        naatId,
+        position,
+      });
+
+      throw new AppError(
+        "Failed to save playback position.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
     }
   }
 
@@ -46,7 +57,7 @@ export class StorageService implements StorageService {
    * Retrieve saved playback position for a specific naat
    * @param naatId - Unique identifier for the naat
    * @returns Playback position in seconds, or null if not found
-   * @throws Error if storage operation fails
+   * @throws AppError if storage operation fails
    */
   async getPlaybackPosition(naatId: string): Promise<number | null> {
     try {
@@ -60,9 +71,15 @@ export class StorageService implements StorageService {
       const parsed: PlaybackPosition = JSON.parse(data);
       return parsed.position;
     } catch (error) {
-      console.error("Failed to get playback position:", error);
-      throw new Error(
-        `Failed to retrieve playback position for naat ${naatId}`
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getPlaybackPosition",
+        naatId,
+      });
+
+      throw new AppError(
+        "Failed to retrieve playback position.",
+        ErrorCode.STORAGE_ERROR,
+        true
       );
     }
   }
@@ -70,7 +87,7 @@ export class StorageService implements StorageService {
   /**
    * Clear saved playback position for a specific naat
    * @param naatId - Unique identifier for the naat
-   * @throws Error if storage operation fails
+   * @throws AppError if storage operation fails
    */
   async clearPlaybackPosition(naatId: string): Promise<void> {
     try {
@@ -78,15 +95,23 @@ export class StorageService implements StorageService {
       await AsyncStorage.removeItem(key);
       await this.removeFromRecentPositions(naatId);
     } catch (error) {
-      console.error("Failed to clear playback position:", error);
-      throw new Error(`Failed to clear playback position for naat ${naatId}`);
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "clearPlaybackPosition",
+        naatId,
+      });
+
+      throw new AppError(
+        "Failed to clear playback position.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
     }
   }
 
   /**
    * Get list of recent playback positions
    * @returns Array of PlaybackPosition objects, limited to 10 most recent
-   * @throws Error if storage operation fails
+   * @throws AppError if storage operation fails
    */
   async getRecentPositions(): Promise<PlaybackPosition[]> {
     try {
@@ -110,8 +135,15 @@ export class StorageService implements StorageService {
 
       return positions;
     } catch (error) {
-      console.error("Failed to get recent positions:", error);
-      throw new Error("Failed to retrieve recent playback positions");
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getRecentPositions",
+      });
+
+      throw new AppError(
+        "Failed to retrieve recent playback positions.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
     }
   }
 
@@ -142,7 +174,10 @@ export class StorageService implements StorageService {
         JSON.stringify(naatIds)
       );
     } catch (error) {
-      console.error("Failed to update recent positions:", error);
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "updateRecentPositions",
+        naatId,
+      });
       // Don't throw here as this is a secondary operation
     }
   }
@@ -168,7 +203,10 @@ export class StorageService implements StorageService {
         JSON.stringify(naatIds)
       );
     } catch (error) {
-      console.error("Failed to remove from recent positions:", error);
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "removeFromRecentPositions",
+        naatId,
+      });
       // Don't throw here as this is a secondary operation
     }
   }
