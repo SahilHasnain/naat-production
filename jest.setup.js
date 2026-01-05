@@ -16,13 +16,20 @@ jest.mock("expo-router", () => ({
   },
 }));
 
-// Mock expo-av
-jest.mock("expo-av", () => ({
-  Video: "Video",
-  ResizeMode: {
-    CONTAIN: "contain",
-  },
-}));
+// Mock react-native-youtube-iframe
+jest.mock("react-native-youtube-iframe", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: React.forwardRef((props, ref) => {
+      React.useImperativeHandle(ref, () => ({
+        getCurrentTime: jest.fn(() => Promise.resolve(0)),
+        seekTo: jest.fn(),
+      }));
+      return null;
+    }),
+  };
+});
 
 // Silence console warnings during tests
 global.console = {
