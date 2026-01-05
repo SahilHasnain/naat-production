@@ -164,7 +164,7 @@
   - Optimize visual hierarchy
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 15. Create integration tests for critical flows
+- [x] 15. Create integration tests for critical flows
   - Write tests for home screen data loading and display
   - Write tests for search functionality end-to-end
   - Write tests for video playback with position saving
