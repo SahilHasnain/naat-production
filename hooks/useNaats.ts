@@ -7,6 +7,8 @@ import type { Naat, UseNaatsReturn } from "../types";
  */
 const PAGE_SIZE = 20;
 
+export type FilterOption = "latest" | "popular" | "oldest";
+
 /**
  * Custom hook for managing naats data with pagination and caching
  *
@@ -16,10 +18,12 @@ const PAGE_SIZE = 20;
  * - Infinite scroll support with loadMore
  * - Pull-to-refresh support
  * - Error handling
+ * - Filter support (latest, popular, oldest)
  *
+ * @param filter - Sort order for naats (default: "latest")
  * @returns UseNaatsReturn object with naats data and control functions
  */
-export function useNaats(): UseNaatsReturn {
+export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -61,9 +65,9 @@ export function useNaats(): UseNaatsReturn {
       return;
     }
 
-    // Fetch from API
+    // Fetch from API with filter
     appwriteService
-      .getNaats(PAGE_SIZE, offsetRef.current)
+      .getNaats(PAGE_SIZE, offsetRef.current, filter)
       .then((newNaats) => {
         // Cache the results
         cacheRef.current.set(offsetRef.current, newNaats);
@@ -92,7 +96,7 @@ export function useNaats(): UseNaatsReturn {
         setLoading(false);
         isLoadingRef.current = false;
       });
-  }, [hasMore, naats.length]);
+  }, [hasMore, naats.length, filter]);
 
   /**
    * Refresh the naats list (pull-to-refresh)
@@ -109,7 +113,7 @@ export function useNaats(): UseNaatsReturn {
     isLoadingRef.current = true;
 
     try {
-      const freshNaats = await appwriteService.getNaats(PAGE_SIZE, 0);
+      const freshNaats = await appwriteService.getNaats(PAGE_SIZE, 0, filter);
 
       // Cache the results
       cacheRef.current.set(0, freshNaats);
@@ -126,7 +130,7 @@ export function useNaats(): UseNaatsReturn {
       setLoading(false);
       isLoadingRef.current = false;
     }
-  }, []);
+  }, [filter]);
 
   return {
     naats,

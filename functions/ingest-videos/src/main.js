@@ -72,7 +72,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
 
     // Fetch video details including duration
     const videosResponse = await fetch(
-      `${baseUrl}/videos?part=contentDetails,snippet&id=${videoIds}&key=${apiKey}`
+      `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`
     );
 
     if (!videosResponse.ok) {
@@ -94,6 +94,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
         video.snippet.thumbnails.default?.url,
       duration: parseDuration(video.contentDetails.duration),
       uploadDate: video.snippet.publishedAt,
+      views: parseInt(video.statistics?.viewCount || "0", 10),
     }));
   } catch (error) {
     throw new Error(`Failed to fetch YouTube videos: ${error.message}`);
@@ -172,6 +173,7 @@ async function insertVideo(
         channelName: channelName,
         channelId: channelId,
         youtubeId: video.youtubeId,
+        views: video.views,
       }
     );
 

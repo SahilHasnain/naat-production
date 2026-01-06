@@ -1,5 +1,6 @@
 import { VideoModal } from "@/components";
 import EmptyState from "@/components/EmptyState";
+import FilterBar, { FilterOption } from "@/components/FilterBar";
 import NaatCard from "@/components/NaatCard";
 import SearchBar from "@/components/SearchBar";
 import { useNaats } from "@/hooks/useNaats";
@@ -20,8 +21,12 @@ export default function HomeScreen() {
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Filter state
+  const [selectedFilter, setSelectedFilter] = useState<FilterOption>("latest");
+
   // Data fetching hooks
-  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats();
+  const { naats, loading, error, hasMore, loadMore, refresh } =
+    useNaats(selectedFilter);
   const {
     query,
     results: searchResults,
@@ -29,11 +34,11 @@ export default function HomeScreen() {
     setQuery,
   } = useSearch();
 
-  // Load initial data on mount
+  // Load initial data on mount and when filter changes
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedFilter]);
 
   // Determine which data to display
   const isSearching = query.trim().length > 0;
@@ -59,6 +64,13 @@ export default function HomeScreen() {
   // Handle pull-to-refresh
   const handleRefresh = async () => {
     await refresh();
+  };
+
+  // Handle filter change
+  const handleFilterChange = (filter: FilterOption) => {
+    setSelectedFilter(filter);
+    // Reset and reload data with new filter
+    refresh();
   };
 
   // Handle infinite scroll
@@ -162,13 +174,21 @@ export default function HomeScreen() {
           paddingBottom: 50,
         }}
         ListHeaderComponent={
-          <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-            <SearchBar
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search naats..."
-            />
-          </View>
+          <>
+            <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+              <SearchBar
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search naats..."
+              />
+            </View>
+            {!isSearching && (
+              <FilterBar
+                selectedFilter={selectedFilter}
+                onFilterChange={handleFilterChange}
+              />
+            )}
+          </>
         }
         stickyHeaderIndices={[0]}
         ListEmptyComponent={renderEmptyState}

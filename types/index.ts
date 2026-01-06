@@ -9,6 +9,7 @@ export interface Naat {
   channelName: string;
   channelId: string;
   youtubeId: string;
+  views: number; // view count for popularity sorting
   createdAt: string;
   updatedAt: string;
 }
@@ -92,7 +93,11 @@ export interface UsePlaybackPositionReturn {
 
 // Service interfaces
 export interface IAppwriteService {
-  getNaats(limit: number, offset: number): Promise<Naat[]>;
+  getNaats(
+    limit: number,
+    offset: number,
+    sortBy?: "latest" | "popular" | "oldest"
+  ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
   searchNaats(query: string): Promise<Naat[]>;
 }

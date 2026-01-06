@@ -64,7 +64,7 @@ async function fetchYouTubeVideos(maxResults = 50) {
 async function fetchVideoDetails(videoIds) {
   const url = new URL("https://www.googleapis.com/youtube/v3/videos");
   url.searchParams.append("key", YOUTUBE_API_KEY);
-  url.searchParams.append("part", "contentDetails");
+  url.searchParams.append("part", "contentDetails,statistics");
   url.searchParams.append("id", videoIds.join(","));
 
   const response = await fetch(url.toString());
@@ -77,12 +77,15 @@ async function fetchVideoDetails(videoIds) {
 
   const data = await response.json();
 
-  const durationMap = {};
+  const videoDetailsMap = {};
   (data.items || []).forEach((item) => {
-    durationMap[item.id] = parseDuration(item.contentDetails.duration);
+    videoDetailsMap[item.id] = {
+      duration: parseDuration(item.contentDetails.duration),
+      views: parseInt(item.statistics?.viewCount || "0", 10),
+    };
   });
 
-  return durationMap;
+  return videoDetailsMap;
 }
 
 function parseDuration(isoDuration) {
@@ -108,7 +111,7 @@ async function videoExists(databases, videoId) {
   }
 }
 
-async function createVideoDocument(databases, video, duration) {
+async function createVideoDocument(databases, video, videoDetails) {
   const videoId = video.id.videoId;
   const snippet = video.snippet;
 
@@ -117,11 +120,12 @@ async function createVideoDocument(databases, video, duration) {
     videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
     thumbnailUrl:
       snippet.thumbnails.high?.url || snippet.thumbnails.default?.url,
-    duration: duration,
+    duration: videoDetails.duration,
     uploadDate: snippet.publishedAt,
     channelName: snippet.channelTitle,
     channelId: YOUTUBE_CHANNEL_ID,
     youtubeId: videoId,
+    views: videoDetails.views,
   };
 
   await databases.createDocument(DATABASE_ID, COLLECTION_ID, videoId, document);
@@ -143,9 +147,9 @@ async function ingestVideos() {
     console.log(`✅ Found ${videos.length} videos`);
 
     const videoIds = videos.map((v) => v.id.videoId);
-    console.log("⏱️  Fetching video durations...");
-    const durations = await fetchVideoDetails(videoIds);
-    console.log("✅ Durations fetched\n");
+    console.log("⏱️  Fetching video details (duration & views)...");
+    const allVideoDetails = await fetchVideoDetails(videoIds);
+    console.log("✅ Video details fetched\n");
 
     let newCount = 0;
     let skippedCount = 0;
@@ -154,7 +158,10 @@ async function ingestVideos() {
     for (const video of videos) {
       const videoId = video.id.videoId;
       const title = video.snippet.title;
-      const duration = durations[videoId] || 0;
+      const videoDetails = allVideoDetails[videoId] || {
+        duration: 0,
+        views: 0,
+      };
 
       try {
         const exists = await videoExists(databases, videoId);
@@ -163,7 +170,7 @@ async function ingestVideos() {
           console.log(`⏭️  Skipped: ${title} (already exists)`);
           skippedCount++;
         } else {
-          await createVideoDocument(databases, video, duration);
+          await createVideoDocument(databases, video, videoDetails);
           console.log(`✅ Added: ${title}`);
           newCount++;
         }

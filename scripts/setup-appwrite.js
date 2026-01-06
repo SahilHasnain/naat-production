@@ -220,6 +220,19 @@ async function createAttributes(databases, collectionId) {
           required: true,
         }),
     },
+    {
+      name: "views",
+      type: "integer",
+      required: true,
+      create: () =>
+        databases.createIntegerAttribute({
+          databaseId: config.databaseId,
+          collectionId: collectionId,
+          key: "views",
+          required: true,
+          min: 0,
+        }),
+    },
   ];
 
   for (const attr of attributes) {
@@ -269,6 +282,20 @@ async function createIndexes(databases, collectionId) {
       attributes: ["uploadDate"],
       orders: ["DESC"],
       description: "Index for sorting by upload date (newest first)",
+    },
+    {
+      name: "uploadDate_asc",
+      type: sdk.IndexType.Key,
+      attributes: ["uploadDate"],
+      orders: ["ASC"],
+      description: "Index for sorting by upload date (oldest first)",
+    },
+    {
+      name: "views_desc",
+      type: sdk.IndexType.Key,
+      attributes: ["views"],
+      orders: ["DESC"],
+      description: "Index for sorting by views (most popular first)",
     },
     {
       name: "channelId_index",

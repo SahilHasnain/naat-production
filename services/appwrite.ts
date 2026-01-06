@@ -58,25 +58,45 @@ export class AppwriteService implements IAppwriteService {
    * Fetches a paginated list of naats from the database
    * @param limit - Number of naats to fetch (default: 20)
    * @param offset - Number of naats to skip for pagination (default: 0)
+   * @param sortBy - Sort order: "latest", "popular", or "oldest" (default: "latest")
    * @returns Promise resolving to array of Naat objects
    * @throws AppError if the request fails or times out
    */
-  async getNaats(limit: number = 20, offset: number = 0): Promise<Naat[]> {
+  async getNaats(
+    limit: number = 20,
+    offset: number = 0,
+    sortBy: "latest" | "popular" | "oldest" = "latest"
+  ): Promise<Naat[]> {
     this.initialize();
 
-    const cacheKey = `naats_${limit}_${offset}`;
+    const cacheKey = `naats_${limit}_${offset}_${sortBy}`;
 
     try {
+      // Build queries based on sort option
+      const queries = [Query.limit(limit), Query.offset(offset)];
+
+      switch (sortBy) {
+        case "popular":
+          // Sort by views in descending order (most popular first)
+          queries.push(Query.orderDesc("views"));
+          break;
+        case "oldest":
+          // Sort by upload date in ascending order (oldest first)
+          queries.push(Query.orderAsc("uploadDate"));
+          break;
+        case "latest":
+        default:
+          // Sort by upload date in descending order (latest first)
+          queries.push(Query.orderDesc("uploadDate"));
+          break;
+      }
+
       const response = await withCacheFallback(
         () =>
           this.database.listDocuments({
             databaseId: appwriteConfig.databaseId,
             collectionId: appwriteConfig.naatsCollectionId,
-            queries: [
-              Query.limit(limit),
-              Query.offset(offset),
-              Query.orderDesc("uploadDate"),
-            ],
+            queries,
           }),
         cacheKey,
         {
@@ -91,6 +111,7 @@ export class AppwriteService implements IAppwriteService {
         context: "getNaats",
         limit,
         offset,
+        sortBy,
       });
 
       if (error instanceof AppError) {
