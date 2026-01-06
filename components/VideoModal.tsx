@@ -1,4 +1,5 @@
 import { VideoPlayerProps } from "@/types";
+import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
   reciterName,
 }) => {
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   // Extract YouTube video ID from URL
   const getYouTubeId = (url: string): string => {
@@ -42,6 +44,29 @@ const VideoModal: React.FC<VideoModalProps> = ({
       setIsLoading(true);
     }
   }, [visible]);
+
+  // Handle fullscreen changes
+  const handleFullscreenChange = async (isFullscreen: boolean) => {
+    setIsFullscreen(isFullscreen);
+
+    if (isFullscreen) {
+      // Lock to landscape when entering fullscreen
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE
+      );
+    } else {
+      // Unlock orientation when exiting fullscreen
+      await ScreenOrientation.unlockAsync();
+    }
+  };
+
+  // Cleanup: unlock orientation when modal closes
+  React.useEffect(() => {
+    if (!visible && isFullscreen) {
+      ScreenOrientation.unlockAsync();
+      setIsFullscreen(false);
+    }
+  }, [visible, isFullscreen]);
 
   return (
     <Modal
@@ -107,6 +132,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                 videoId={videoId}
                 play={false}
                 onReady={() => setIsLoading(false)}
+                onFullScreenChange={handleFullscreenChange}
                 webViewStyle={{ opacity: isLoading ? 0 : 1 }}
                 initialPlayerParams={{
                   controls: true,
