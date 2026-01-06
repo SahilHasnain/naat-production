@@ -22,9 +22,15 @@ import { Client, Databases, ID, Query } from "node-appwrite";
  * @param {string} channelId - YouTube channel ID
  * @param {string} apiKey - YouTube API key
  * @param {number} maxResults - Maximum number of videos to fetch
+ * @param {string} publishedAfter - ISO 8601 timestamp to fetch videos after (optional)
  * @returns {Promise<Array>} Array of video objects
  */
-async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
+async function fetchYouTubeVideos(
+  channelId,
+  apiKey,
+  maxResults = 50,
+  publishedAfter = null
+) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
   try {
@@ -48,10 +54,15 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
+    // Build playlist URL with optional publishedAfter parameter
+    let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`;
+
+    if (publishedAfter) {
+      playlistUrl += `&publishedAfter=${publishedAfter}`;
+    }
+
     // Fetch videos from the uploads playlist
-    const playlistResponse = await fetch(
-      `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
-    );
+    const playlistResponse = await fetch(playlistUrl);
 
     if (!playlistResponse.ok) {
       throw new Error(
@@ -118,6 +129,26 @@ function parseDuration(duration) {
   const seconds = parseInt(match[3] || "0", 10);
 
   return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Gets the most recent video's upload date from the database
+ * @param {Databases} databases - Appwrite Databases instance
+ * @param {string} databaseId - Database ID
+ * @param {string} collectionId - Collection ID
+ * @returns {Promise<string|null>} ISO 8601 timestamp of most recent video, or null if none exist
+ */
+async function getLastVideoDate(databases, databaseId, collectionId) {
+  try {
+    const result = await databases.listDocuments(databaseId, collectionId, [
+      Query.orderDesc("uploadDate"),
+      Query.limit(1),
+    ]);
+
+    return result.documents.length > 0 ? result.documents[0].uploadDate : null;
+  } catch (error) {
+    throw new Error(`Failed to get last video date: ${error.message}`);
+  }
 }
 
 /**
@@ -234,12 +265,31 @@ export default async ({ req, res, log, error: logError }) => {
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound and Video";
 
+    // Get the last video date to only fetch newer videos
+    log("Checking for last processed video...");
+    const lastVideoDate = await getLastVideoDate(
+      databases,
+      databaseId,
+      collectionId
+    );
+
+    if (lastVideoDate) {
+      log(`Last video date: ${lastVideoDate}. Fetching only newer videos.`);
+    } else {
+      log("No existing videos found. Fetching all available videos.");
+    }
+
     log(`Fetching videos from YouTube channel: ${channelId}`);
 
-    // Fetch videos from YouTube
-    const videos = await fetchYouTubeVideos(channelId, youtubeApiKey);
+    // Fetch videos from YouTube (only newer than last processed)
+    const videos = await fetchYouTubeVideos(
+      channelId,
+      youtubeApiKey,
+      50,
+      lastVideoDate
+    );
 
-    log(`Found ${videos.length} videos on YouTube`);
+    log(`Found ${videos.length} new videos on YouTube`);
 
     // Process each video
     const results = {
