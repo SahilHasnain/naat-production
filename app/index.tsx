@@ -69,15 +69,17 @@ export default function HomeScreen() {
 
   // Render individual naat card
   const renderNaatCard = ({ item }: { item: Naat }) => (
-    <NaatCard
-      id={item.$id}
-      title={item.title}
-      thumbnail={item.thumbnailUrl}
-      duration={item.duration}
-      uploadDate={item.uploadDate}
-      reciterName={item.reciterName}
-      onPress={() => handleNaatPress(item.$id)}
-    />
+    <View className="px-4 mb-4">
+      <NaatCard
+        id={item.$id}
+        title={item.title}
+        thumbnail={item.thumbnailUrl}
+        duration={item.duration}
+        uploadDate={item.uploadDate}
+        reciterName={item.reciterName}
+        onPress={() => handleNaatPress(item.$id)}
+      />
+    </View>
   );
 
   // Render footer loading indicator
@@ -97,7 +99,7 @@ export default function HomeScreen() {
   const renderEmptyState = () => {
     if (isLoading && displayData.length === 0) {
       return (
-        <View className="flex-1 items-center justify-center py-20">
+        <View className="items-center justify-center flex-1 py-20">
           <ActivityIndicator size="large" color="#2563eb" />
           <Text className="mt-4 text-base text-neutral-600 dark:text-neutral-400">
             Loading naats...
@@ -137,27 +139,25 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-neutral-50 dark:bg-neutral-900">
-      {/* Header with search */}
-      <View className="bg-white dark:bg-neutral-800 px-6 pb-4 pt-safe-top shadow-sm">
-        <Text className="mb-4 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
-          Naats
-        </Text>
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search naats..."
-        />
-      </View>
-
       <FlatList
         data={displayData}
         renderItem={renderNaatCard}
         keyExtractor={(item) => item.$id}
         getItemLayout={getItemLayout}
         contentContainerStyle={{
-          padding: 16,
           flexGrow: 1,
+          paddingBottom: 50,
         }}
+        ListHeaderComponent={
+          <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+            <SearchBar
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search naats..."
+            />
+          </View>
+        }
+        stickyHeaderIndices={[0]}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}
         onEndReached={handleEndReached}

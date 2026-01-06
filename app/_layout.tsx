@@ -5,7 +5,11 @@ import "../global.css";
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <Stack />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
     </ErrorBoundary>
   );
 }
