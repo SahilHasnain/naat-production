@@ -19,19 +19,12 @@ import { Client, Databases, ID, Query } from "node-appwrite";
 
 /**
  * Fetches videos from a YouTube channel using YouTube Data API v3
- * Stops fetching when it encounters a video that's already stored
  * @param {string} channelId - YouTube channel ID
  * @param {string} apiKey - YouTube API key
- * @param {number} maxResults - Maximum number of new videos to fetch
- * @param {Set<string>} storedVideoIds - Set of already stored YouTube video IDs
- * @returns {Promise<Array>} Array of new video objects
+ * @param {number} maxResults - Maximum number of videos to fetch
+ * @returns {Promise<Array>} Array of video objects
  */
-async function fetchYouTubeVideos(
-  channelId,
-  apiKey,
-  maxResults = 50,
-  storedVideoIds = new Set()
-) {
+async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
   try {
@@ -55,72 +48,29 @@ async function fetchYouTubeVideos(
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
-    // Fetch videos in batches, stopping when we hit an already-stored video
-    const newVideoItems = [];
-    let pageToken = null;
-    let shouldContinue = true;
-    let consecutiveStoredCount = 0;
+    // Fetch videos from the uploads playlist
+    const playlistResponse = await fetch(
+      `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
+    );
 
-    while (shouldContinue && newVideoItems.length < maxResults) {
-      let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${apiKey}`;
-
-      if (pageToken) {
-        playlistUrl += `&pageToken=${pageToken}`;
-      }
-
-      const playlistResponse = await fetch(playlistUrl);
-
-      if (!playlistResponse.ok) {
-        throw new Error(
-          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
-        );
-      }
-
-      const playlistData = await playlistResponse.json();
-
-      if (!playlistData.items || playlistData.items.length === 0) {
-        break;
-      }
-
-      for (const item of playlistData.items) {
-        const videoId = item.contentDetails.videoId;
-
-        // If we've seen this video before, increment counter
-        if (storedVideoIds.has(videoId)) {
-          consecutiveStoredCount++;
-          // Stop if we've hit 3 consecutive stored videos (we've caught up)
-          if (consecutiveStoredCount >= 3) {
-            shouldContinue = false;
-            break;
-          }
-          continue;
-        }
-
-        // Reset counter when we find a new video
-        consecutiveStoredCount = 0;
-        newVideoItems.push(item);
-
-        if (newVideoItems.length >= maxResults) {
-          shouldContinue = false;
-          break;
-        }
-      }
-
-      pageToken = playlistData.nextPageToken;
-      if (!pageToken) {
-        shouldContinue = false;
-      }
+    if (!playlistResponse.ok) {
+      throw new Error(
+        `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+      );
     }
 
-    if (newVideoItems.length === 0) {
+    const playlistData = await playlistResponse.json();
+
+    if (!playlistData.items || playlistData.items.length === 0) {
       return [];
     }
 
-    // Get video IDs to fetch full details
-    const videoIds = newVideoItems
+    // Get video IDs to fetch durations
+    const videoIds = playlistData.items
       .map((item) => item.contentDetails.videoId)
       .join(",");
 
+    // Fetch video details including duration
     const videosResponse = await fetch(
       `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`
     );
@@ -133,6 +83,7 @@ async function fetchYouTubeVideos(
 
     const videosData = await videosResponse.json();
 
+    // Transform the data into our format
     return videosData.items.map((video) => ({
       youtubeId: video.id,
       title: video.snippet.title,
@@ -170,45 +121,23 @@ function parseDuration(duration) {
 }
 
 /**
- * Gets the most recent video's YouTube ID from the database
+ * Checks if a video already exists in the database
  * @param {Databases} databases - Appwrite Databases instance
  * @param {string} databaseId - Database ID
  * @param {string} collectionId - Collection ID
- * @returns {Promise<Set<string>>} Set of all stored YouTube IDs
+ * @param {string} youtubeId - YouTube video ID
+ * @returns {Promise<boolean>} True if video exists, false otherwise
  */
-async function getStoredVideoIds(databases, databaseId, collectionId) {
+async function videoExists(databases, databaseId, collectionId, youtubeId) {
   try {
-    const storedIds = new Set();
-    let cursor = null;
-    let hasMore = true;
+    const result = await databases.listDocuments(databaseId, collectionId, [
+      Query.equal("youtubeId", youtubeId),
+      Query.limit(1),
+    ]);
 
-    // Fetch all stored video IDs using pagination
-    while (hasMore) {
-      const queries = [Query.select(["youtubeId"]), Query.limit(100)];
-      if (cursor) {
-        queries.push(Query.cursorAfter(cursor));
-      }
-
-      const result = await databases.listDocuments(
-        databaseId,
-        collectionId,
-        queries
-      );
-
-      for (const doc of result.documents) {
-        storedIds.add(doc.youtubeId);
-      }
-
-      if (result.documents.length < 100) {
-        hasMore = false;
-      } else {
-        cursor = result.documents[result.documents.length - 1].$id;
-      }
-    }
-
-    return storedIds;
+    return result.documents.length > 0;
   } catch (error) {
-    throw new Error(`Failed to get stored video IDs: ${error.message}`);
+    throw new Error(`Failed to check video existence: ${error.message}`);
   }
 }
 
@@ -305,38 +234,38 @@ export default async ({ req, res, log, error: logError }) => {
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound and Video";
 
-    // Get all stored video IDs to check against
-    log("Fetching stored video IDs...");
-    const storedVideoIds = await getStoredVideoIds(
-      databases,
-      databaseId,
-      collectionId
-    );
-
-    log(`Found ${storedVideoIds.size} videos already in database.`);
-
     log(`Fetching videos from YouTube channel: ${channelId}`);
 
-    // Fetch only new videos from YouTube
-    const videos = await fetchYouTubeVideos(
-      channelId,
-      youtubeApiKey,
-      50,
-      storedVideoIds
-    );
+    // Fetch videos from YouTube
+    const videos = await fetchYouTubeVideos(channelId, youtubeApiKey);
 
-    log(`Found ${videos.length} new videos on YouTube`);
+    log(`Found ${videos.length} videos on YouTube`);
 
     // Process each video
     const results = {
       processed: videos.length,
       added: 0,
+      skipped: 0,
       errors: [],
     };
 
     for (const video of videos) {
       try {
-        // Insert new video (already filtered for duplicates)
+        // Check if video already exists
+        const exists = await videoExists(
+          databases,
+          databaseId,
+          collectionId,
+          video.youtubeId
+        );
+
+        if (exists) {
+          log(`Skipping existing video: ${video.title} (${video.youtubeId})`);
+          results.skipped++;
+          continue;
+        }
+
+        // Insert new video
         await insertVideo(
           databases,
           databaseId,
@@ -356,7 +285,9 @@ export default async ({ req, res, log, error: logError }) => {
     }
 
     log("Video ingestion completed");
-    log(`Summary: ${results.added} added, ${results.errors.length} errors`);
+    log(
+      `Summary: ${results.added} added, ${results.skipped} skipped, ${results.errors.length} errors`
+    );
 
     return res.json({
       success: true,
