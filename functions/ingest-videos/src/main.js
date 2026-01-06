@@ -12,8 +12,7 @@
  * - APPWRITE_NAATS_COLLECTION_ID: Naats collection ID
  * - YOUTUBE_CHANNEL_ID: YouTube channel ID to fetch videos from
  * - YOUTUBE_API_KEY: YouTube Data API v3 key
- * - RECITER_NAME: Name of the reciter (default: "Unknown Reciter")
- * - RECITER_ID: ID of the reciter (default: "default-reciter")
+ * - CHANNEL_NAME: Name of the channel (default: "Unknown Channel")
  */
 
 import { Client, Databases, ID, Query } from "node-appwrite";
@@ -147,8 +146,8 @@ async function videoExists(databases, databaseId, collectionId, youtubeId) {
  * @param {string} databaseId - Database ID
  * @param {string} collectionId - Collection ID
  * @param {Object} video - Video object
- * @param {string} reciterName - Reciter name
- * @param {string} reciterId - Reciter ID
+ * @param {string} channelName - Channel name
+ * @param {string} channelId - Channel ID
  * @returns {Promise<Object>} Created document
  */
 async function insertVideo(
@@ -156,8 +155,8 @@ async function insertVideo(
   databaseId,
   collectionId,
   video,
-  reciterName,
-  reciterId
+  channelName,
+  channelId
 ) {
   try {
     const document = await databases.createDocument(
@@ -170,8 +169,8 @@ async function insertVideo(
         thumbnailUrl: video.thumbnailUrl,
         duration: video.duration,
         uploadDate: video.uploadDate,
-        reciterName: reciterName,
-        reciterId: reciterId,
+        channelName: channelName,
+        channelId: channelId,
         youtubeId: video.youtubeId,
       }
     );
@@ -231,8 +230,7 @@ export default async ({ req, res, log, error: logError }) => {
     const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
     const channelId = process.env.YOUTUBE_CHANNEL_ID;
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    const reciterName = process.env.RECITER_NAME || "Unknown Reciter";
-    const reciterId = process.env.RECITER_ID || "default-reciter";
+    const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound and Video";
 
     log(`Fetching videos from YouTube channel: ${channelId}`);
 
@@ -271,8 +269,8 @@ export default async ({ req, res, log, error: logError }) => {
           databaseId,
           collectionId,
           video,
-          reciterName,
-          reciterId
+          channelName,
+          channelId
         );
 
         log(`Added new video: ${video.title} (${video.youtubeId})`);

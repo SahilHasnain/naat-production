@@ -15,7 +15,7 @@ interface VideoModalProps extends VideoPlayerProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  reciterName?: string;
+  channelName?: string;
 }
 
 const VideoModal: React.FC<VideoModalProps> = ({
@@ -23,7 +23,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
   onClose,
   videoUrl,
   title,
-  reciterName,
+  channelName,
 }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -107,11 +107,9 @@ const VideoModal: React.FC<VideoModalProps> = ({
                       {title}
                     </Text>
                   )}
-                  {reciterName && (
-                    <Text className="text-sm text-neutral-400 mt-1">
-                      {reciterName}
-                    </Text>
-                  )}
+                  <Text className="text-sm text-neutral-400 mt-1">
+                    {channelName || "Baghdadi Sound and Video"}
+                  </Text>
                 </View>
 
                 <Pressable

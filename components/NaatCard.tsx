@@ -10,7 +10,7 @@ const formatDuration = (seconds: number): string => {
 };
 
 const NaatCard: React.FC<NaatCardProps> = React.memo(
-  ({ title, thumbnail, duration, uploadDate, reciterName, onPress }) => {
+  ({ title, thumbnail, duration, uploadDate, channelName, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
     const [isPressed, setIsPressed] = React.useState(false);
     const [imageLoading, setImageLoading] = React.useState(true);
@@ -118,7 +118,7 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
             {title}
           </Text>
 
-          {/* Reciter name with icon */}
+          {/* Channel name with icon */}
           <View className="flex-row items-center">
             <Text className="mr-1.5 text-neutral-500 dark:text-neutral-400">
               👤
@@ -127,7 +127,7 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               className="flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-300"
               numberOfLines={1}
             >
-              {reciterName}
+              {channelName || "Baghdadi Sound and Video"}
             </Text>
           </View>
 

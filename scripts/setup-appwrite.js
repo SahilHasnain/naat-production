@@ -98,15 +98,6 @@ async function createNaatsCollection(databases) {
   console.log("\n📦 Creating Naats collection...");
 
   try {
-    const collection = await databases.createCollection({
-      databaseId: config.databaseId,
-      collectionId: collectionId,
-      name: "Naats",
-      permissions: [sdk.Permission.read(sdk.Role.any())],
-      documentSecurity: false,
-      enabled: true,
-    });
-
     console.log(`✅ Collection created with ID: ${collectionId}`);
     return collectionId;
   } catch (error) {
@@ -188,7 +179,7 @@ async function createAttributes(databases, collectionId) {
         }),
     },
     {
-      name: "reciterName",
+      name: "channelName",
       type: "string",
       size: 200,
       required: true,
@@ -196,13 +187,13 @@ async function createAttributes(databases, collectionId) {
         databases.createStringAttribute({
           databaseId: config.databaseId,
           collectionId: collectionId,
-          key: "reciterName",
+          key: "channelName",
           size: 200,
           required: true,
         }),
     },
     {
-      name: "reciterId",
+      name: "channelId",
       type: "string",
       size: 100,
       required: true,
@@ -210,7 +201,7 @@ async function createAttributes(databases, collectionId) {
         databases.createStringAttribute({
           databaseId: config.databaseId,
           collectionId: collectionId,
-          key: "reciterId",
+          key: "channelId",
           size: 100,
           required: true,
         }),
@@ -280,10 +271,10 @@ async function createIndexes(databases, collectionId) {
       description: "Index for sorting by upload date (newest first)",
     },
     {
-      name: "reciterId_index",
+      name: "channelId_index",
       type: sdk.IndexType.Key,
-      attributes: ["reciterId"],
-      description: "Index for filtering by reciter",
+      attributes: ["channelId"],
+      description: "Index for filtering by channel",
     },
   ];
 

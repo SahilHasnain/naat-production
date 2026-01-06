@@ -119,8 +119,8 @@ async function createVideoDocument(databases, video, duration) {
       snippet.thumbnails.high?.url || snippet.thumbnails.default?.url,
     duration: duration,
     uploadDate: snippet.publishedAt,
-    reciterName: snippet.channelTitle,
-    reciterId: YOUTUBE_CHANNEL_ID,
+    channelName: snippet.channelTitle,
+    channelId: YOUTUBE_CHANNEL_ID,
     youtubeId: videoId,
   };
 

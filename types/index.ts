@@ -6,8 +6,8 @@ export interface Naat {
   thumbnailUrl: string;
   duration: number; // in seconds
   uploadDate: string; // ISO 8601 format
-  reciterName: string;
-  reciterId: string;
+  channelName: string;
+  channelId: string;
   youtubeId: string;
   createdAt: string;
   updatedAt: string;
@@ -111,7 +111,7 @@ export interface NaatCardProps {
   thumbnail: string;
   duration: number;
   uploadDate: string;
-  reciterName: string;
+  channelName: string;
   onPress: () => void;
 }
 

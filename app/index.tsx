@@ -5,7 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
 import type { Naat } from "@/types";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +13,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useState } from "react";
 
 export default function HomeScreen() {
   // Modal state
@@ -86,7 +85,7 @@ export default function HomeScreen() {
         thumbnail={item.thumbnailUrl}
         duration={item.duration}
         uploadDate={item.uploadDate}
-        reciterName={item.reciterName}
+        channelName={item.channelName}
         onPress={() => handleNaatPress(item.$id)}
       />
     </View>
@@ -193,7 +192,7 @@ export default function HomeScreen() {
           onClose={handleCloseModal}
           videoUrl={selectedNaat.videoUrl}
           title={selectedNaat.title}
-          reciterName={selectedNaat.reciterName}
+          channelName={selectedNaat.channelName}
         />
       )}
     </View>
