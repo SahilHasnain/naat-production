@@ -12,62 +12,138 @@ const formatDuration = (seconds: number): string => {
 const NaatCard: React.FC<NaatCardProps> = React.memo(
   ({ title, thumbnail, duration, uploadDate, reciterName, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
+    const [isPressed, setIsPressed] = React.useState(false);
+    const [imageLoading, setImageLoading] = React.useState(true);
+
+    // Debug: Log thumbnail URL
+    React.useEffect(() => {
+      console.log("Thumbnail URL:", thumbnail);
+    }, [thumbnail]);
 
     return (
       <Pressable
         onPress={onPress}
-        className="mb-4 overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-md active:opacity-90 active:scale-[0.98]"
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        className="mb-5 overflow-hidden rounded-2xl bg-white dark:bg-neutral-800 shadow-lg"
         style={{
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 3,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          elevation: 5,
+          transform: [{ scale: isPressed ? 0.97 : 1 }],
+          opacity: isPressed ? 0.85 : 1,
         }}
       >
-        <View className="relative">
-          {imageError ? (
-            <View className="h-48 w-full items-center justify-center bg-neutral-200 dark:bg-neutral-700">
-              <Text className="text-4xl">🎵</Text>
-              <Text className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                No Image
-              </Text>
+        {/* Thumbnail Section with explicit 16:9 aspect ratio */}
+        <View
+          className="relative w-full bg-neutral-100 dark:bg-neutral-900"
+          style={{ height: 200 }}
+        >
+          {imageError || !thumbnail ? (
+            <View className="h-full w-full items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+              <View className="items-center">
+                <Text className="text-5xl mb-2">🎵</Text>
+                <Text className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  No Thumbnail
+                </Text>
+              </View>
             </View>
           ) : (
-            <Image
-              source={{ uri: thumbnail }}
-              className="h-48 w-full"
-              contentFit="cover"
-              onError={() => setImageError(true)}
-              cachePolicy="memory-disk"
-              transition={200}
-            />
+            <>
+              <Image
+                source={{ uri: thumbnail }}
+                style={{ width: "100%", height: 200 }}
+                contentFit="cover"
+                onError={(error) => {
+                  console.log("Image load error:", error);
+                  setImageError(true);
+                  setImageLoading(false);
+                }}
+                onLoad={() => {
+                  console.log("Image loaded successfully");
+                  setImageLoading(false);
+                }}
+                cachePolicy="memory-disk"
+                transition={300}
+              />
+              {/* Loading indicator */}
+              {imageLoading && (
+                <View className="absolute inset-0 items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                  <Text className="text-2xl">⏳</Text>
+                </View>
+              )}
+              {/* Gradient overlay for better badge visibility */}
+              {!imageLoading && (
+                <View
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: "transparent",
+                  }}
+                  pointerEvents="none"
+                />
+              )}
+            </>
           )}
-          {/* Duration badge with improved contrast */}
-          <View className="absolute bottom-3 right-3 rounded-md bg-black/80 px-2.5 py-1.5">
-            <Text className="text-xs font-bold text-white tracking-wide">
+
+          {/* Duration badge - enhanced design */}
+          <View className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/90 px-3 py-1.5">
+            <Text className="text-xs font-bold text-white tracking-wider">
               {formatDuration(duration)}
             </Text>
           </View>
+
+          {/* Play icon overlay hint */}
+          {!imageLoading && !imageError && (
+            <View
+              className="absolute inset-0 items-center justify-center"
+              pointerEvents="none"
+            >
+              <View className="h-14 w-14 items-center justify-center rounded-full bg-black/30">
+                <Text className="text-2xl">▶️</Text>
+              </View>
+            </View>
+          )}
         </View>
 
-        <View className="p-4">
+        {/* Content Section */}
+        <View className="p-4 space-y-2">
+          {/* Title */}
           <Text
-            className="mb-2 text-lg font-bold leading-snug text-neutral-900 dark:text-white"
+            className="text-base font-bold leading-tight text-neutral-900 dark:text-white"
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {title}
           </Text>
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {reciterName}
-          </Text>
-          <Text className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            {new Date(uploadDate).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </Text>
+
+          {/* Reciter name with icon */}
+          <View className="flex-row items-center">
+            <Text className="mr-1.5 text-neutral-500 dark:text-neutral-400">
+              👤
+            </Text>
+            <Text
+              className="flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-300"
+              numberOfLines={1}
+            >
+              {reciterName}
+            </Text>
+          </View>
+
+          {/* Upload date with icon */}
+          <View className="flex-row items-center">
+            <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
+              📅
+            </Text>
+            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+              {new Date(uploadDate).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </Text>
+          </View>
         </View>
       </Pressable>
     );
