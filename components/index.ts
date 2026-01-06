@@ -1,3 +1,4 @@
+export { default as BackToTopButton } from "./BackToTopButton";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as FilterBar } from "./FilterBar";

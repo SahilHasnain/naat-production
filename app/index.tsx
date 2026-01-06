@@ -1,4 +1,4 @@
-import { VideoModal } from "@/components";
+import { BackToTopButton, VideoModal } from "@/components";
 import EmptyState from "@/components/EmptyState";
 import FilterBar, { FilterOption } from "@/components/FilterBar";
 import NaatCard from "@/components/NaatCard";
@@ -6,7 +6,7 @@ import SearchBar from "@/components/SearchBar";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
 import type { Naat } from "@/types";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -23,6 +23,10 @@ export default function HomeScreen() {
 
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState<FilterOption>("latest");
+
+  // Back to top state
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   // Data fetching hooks
   const { naats, loading, error, hasMore, loadMore, refresh } =
@@ -78,6 +82,17 @@ export default function HomeScreen() {
     if (!isSearching && hasMore && !loading) {
       loadMore();
     }
+  };
+
+  // Handle scroll to show/hide back to top button
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowBackToTop(offsetY > 500);
+  };
+
+  // Scroll to top
+  const scrollToTop = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   // Optimize FlatList performance with getItemLayout
@@ -164,50 +179,58 @@ export default function HomeScreen() {
       className="flex-1 bg-neutral-50 dark:bg-neutral-900"
       edges={["bottom"]}
     >
-      <FlatList
-        data={displayData}
-        renderItem={renderNaatCard}
-        keyExtractor={(item) => item.$id}
-        getItemLayout={getItemLayout}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 50,
-        }}
-        ListHeaderComponent={
-          <>
-            <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-              <SearchBar
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search naats..."
-              />
-            </View>
-            {!isSearching && (
+      <View className="flex-1">
+        {/* Sticky Search Bar */}
+        <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search naats..."
+          />
+        </View>
+
+        {/* Scrollable Content */}
+        <FlatList
+          ref={flatListRef}
+          data={displayData}
+          renderItem={renderNaatCard}
+          keyExtractor={(item) => item.$id}
+          getItemLayout={getItemLayout}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 50,
+          }}
+          ListHeaderComponent={
+            !isSearching ? (
               <FilterBar
                 selectedFilter={selectedFilter}
                 onFilterChange={handleFilterChange}
               />
-            )}
-          </>
-        }
-        stickyHeaderIndices={[0]}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            refreshing={false}
-            onRefresh={handleRefresh}
-            colors={["#2563eb"]}
-            tintColor="#2563eb"
-          />
-        }
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        initialNumToRender={10}
-      />
+            ) : null
+          }
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={renderFooter}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          onScroll={handleScroll}
+          scrollEventThrottle={400}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={handleRefresh}
+              colors={["#2563eb"]}
+              tintColor="#2563eb"
+            />
+          }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
+        />
+
+        {/* Back to Top Button */}
+        <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
+      </View>
 
       {/* Video Modal */}
       {selectedNaat && (
