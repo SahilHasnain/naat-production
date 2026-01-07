@@ -5,6 +5,7 @@
  * for data management, search, and playback position tracking.
  */
 
+export { useChannels } from "./useChannels";
 export { useNaats } from "./useNaats";
 export { usePlaybackPosition } from "./usePlaybackPosition";
 export { useSearch } from "./useSearch";

@@ -14,6 +14,21 @@ export interface Naat {
   updatedAt: string;
 }
 
+export interface Channel {
+  id: string; // YouTube channel ID
+  name: string; // Channel display name
+}
+
+export interface ChannelDocument {
+  $id: string; // Document ID (same as channelId)
+  channelId: string; // YouTube channel ID
+  channelName: string;
+  naatCount?: number; // Optional: number of naats from this channel
+  lastUpdated?: string; // ISO 8601 format
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Reciter {
   $id: string;
   name: string;
@@ -77,6 +92,13 @@ export interface UseNaatsReturn {
   refresh: () => Promise<void>;
 }
 
+export interface UseChannelsReturn {
+  channels: Channel[];
+  loading: boolean;
+  error: Error | null;
+  refresh: () => Promise<void>;
+}
+
 export interface UseSearchReturn {
   query: string;
   results: Naat[];
@@ -96,11 +118,13 @@ export interface IAppwriteService {
   getNaats(
     limit: number,
     offset: number,
-    sortBy?: "latest" | "popular" | "oldest"
+    sortBy?: "latest" | "popular" | "oldest",
+    channelId?: string | null
   ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
-  searchNaats(query: string): Promise<Naat[]>;
+  searchNaats(query: string, channelId?: string | null): Promise<Naat[]>;
   getAudioUrl(youtubeId: string): Promise<AudioUrlResponse>;
+  getChannels(): Promise<Channel[]>;
 }
 
 export interface IStorageService {

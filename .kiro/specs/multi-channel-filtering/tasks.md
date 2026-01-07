@@ -1,13 +1,13 @@
 # Implementation Plan
 
-- [ ] 1. Enhance AppwriteService for channel filtering
+- [x] 1. Enhance AppwriteService for channel filtering
   - Add getChannels() method to fetch distinct channels from database
   - Update getNaats() method to accept optional channelId parameter
   - Update searchNaats() method to accept optional channelId parameter
   - Update cache keys to include channelId in the key structure
   - _Requirements: 1.1, 3.1, 5.2_
 
-- [ ] 2. Create useChannels hook
+- [x] 2. Create useChannels hook
   - Implement hook to fetch available channels on mount
   - Add in-memory caching for channel list
   - Implement refresh function for pull-to-refresh support
@@ -15,7 +15,7 @@
   - Handle empty channel list and error states
   - _Requirements: 1.1, 1.3, 1.4, 1.5_
 
-- [ ] 3. Update useNaats hook for channel filtering
+- [x] 3. Update useNaats hook for channel filtering
   - Add channelId parameter to hook signature
   - Update cache key structure to include channelId
   - Reset state when channelId changes
@@ -23,7 +23,7 @@
   - Maintain separate caches for each channel + sort combination
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 4. Update useSearch hook for channel filtering
+- [x] 4. Update useSearch hook for channel filtering
   - Add channelId parameter to hook signature
   - Pass channelId to appwriteService.searchNaats()
   - Update cache key to include channelId

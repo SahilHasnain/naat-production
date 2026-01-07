@@ -16,10 +16,12 @@ const DEBOUNCE_DELAY = 300;
  * - Clear search to restore full list
  * - Error handling
  * - Loading states
+ * - Channel filtering support
  *
+ * @param channelId - Optional channel ID to filter search results (null = all channels)
  * @returns UseSearchReturn object with search state and control functions
  */
-export function useSearch(): UseSearchReturn {
+export function useSearch(channelId: string | null = null): UseSearchReturn {
   const [query, setQueryState] = useState<string>("");
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -33,35 +35,41 @@ export function useSearch(): UseSearchReturn {
   /**
    * Perform the actual search
    */
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const searchResults = await appwriteService.searchNaats(searchQuery);
-
-      // Only update state if component is still mounted
-      if (isMountedRef.current) {
-        setResults(searchResults);
-      }
-    } catch (error) {
-      console.error("Search failed:", error);
-
-      // On error, clear results
-      if (isMountedRef.current) {
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) {
         setResults([]);
-      }
-    } finally {
-      if (isMountedRef.current) {
         setLoading(false);
+        return;
       }
-    }
-  }, []);
+
+      setLoading(true);
+
+      try {
+        const searchResults = await appwriteService.searchNaats(
+          searchQuery,
+          channelId
+        );
+
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setResults(searchResults);
+        }
+      } catch (error) {
+        console.error("Search failed:", error);
+
+        // On error, clear results
+        if (isMountedRef.current) {
+          setResults([]);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [channelId]
+  );
 
   /**
    * Set search query with debouncing
@@ -109,6 +117,17 @@ export function useSearch(): UseSearchReturn {
     setResults([]);
     setLoading(false);
   }, []);
+
+  // Reset search results when channelId changes
+  useEffect(() => {
+    // If there's an active search query, re-run the search with the new channelId
+    if (query.trim()) {
+      performSearch(query);
+    } else {
+      // Otherwise just clear results
+      setResults([]);
+    }
+  }, [channelId, query, performSearch]);
 
   // Cleanup on unmount
   useEffect(() => {

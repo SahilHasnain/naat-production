@@ -11,6 +11,8 @@ export const appwriteConfig = {
   projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID || "",
   databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID || "",
   naatsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || "",
+  channelsCollectionId:
+    process.env.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID || "",
   audioCacheCollectionId:
     process.env.EXPO_PUBLIC_APPWRITE_AUDIO_CACHE_COLLECTION_ID || "",
   audioExtractionFunctionUrl:
@@ -36,6 +38,9 @@ export function validateAppwriteConfig(): void {
   }
   if (!appwriteConfig.naatsCollectionId) {
     missingVars.push("EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID");
+  }
+  if (!appwriteConfig.channelsCollectionId) {
+    missingVars.push("EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID");
   }
 
   if (missingVars.length > 0) {

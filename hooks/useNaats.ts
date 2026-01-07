@@ -19,11 +19,16 @@ export type FilterOption = "latest" | "popular" | "oldest";
  * - Pull-to-refresh support
  * - Error handling
  * - Filter support (latest, popular, oldest)
+ * - Channel filtering support (null = all channels)
  *
+ * @param channelId - YouTube channel ID to filter by (null = all channels)
  * @param filter - Sort order for naats (default: "latest")
  * @returns UseNaatsReturn object with naats data and control functions
  */
-export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
+export function useNaats(
+  channelId: string | null = null,
+  filter: FilterOption = "latest"
+): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -32,26 +37,41 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
   // Track current offset for pagination
   const offsetRef = useRef<number>(0);
 
-  // In-memory cache to avoid redundant API calls (separate cache per filter)
+  // In-memory cache to avoid redundant API calls (separate cache per channel + filter combination)
   const cacheRef = useRef<Map<string, Map<number, Naat[]>>>(new Map());
 
   // Flag to prevent multiple simultaneous loads
   const isLoadingRef = useRef<boolean>(false);
 
-  // Track current filter to detect changes
+  // Track current filter and channel to detect changes
   const currentFilterRef = useRef<FilterOption>(filter);
+  const currentChannelRef = useRef<string | null>(channelId);
 
-  // Reset state when filter changes
+  // Generate cache key from channelId and filter
+  const getCacheKey = useCallback(
+    (channel: string | null, sortFilter: FilterOption): string => {
+      return `${channel || "all"}_${sortFilter}`;
+    },
+    []
+  );
+
+  const cacheKey = getCacheKey(channelId, filter);
+
+  // Reset state when filter or channelId changes
   useEffect(() => {
-    if (currentFilterRef.current !== filter) {
+    if (
+      currentFilterRef.current !== filter ||
+      currentChannelRef.current !== channelId
+    ) {
       currentFilterRef.current = filter;
+      currentChannelRef.current = channelId;
       offsetRef.current = 0;
       setNaats([]);
       setHasMore(true);
       setError(null);
       isLoadingRef.current = false;
     }
-  }, [filter]);
+  }, [filter, channelId]);
 
   /**
    * Load more naats for infinite scroll
@@ -67,11 +87,11 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     setLoading(true);
     setError(null);
 
-    // Get or create cache for current filter
-    if (!cacheRef.current.has(filter)) {
-      cacheRef.current.set(filter, new Map());
+    // Get or create cache for current channel + filter combination
+    if (!cacheRef.current.has(cacheKey)) {
+      cacheRef.current.set(cacheKey, new Map());
     }
-    const filterCache = cacheRef.current.get(filter)!;
+    const filterCache = cacheRef.current.get(cacheKey)!;
 
     // Check cache first
     const cachedData = filterCache.get(offsetRef.current);
@@ -86,11 +106,11 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
       return;
     }
 
-    // Fetch from API with filter
+    // Fetch from API with filter and channelId
     appwriteService
-      .getNaats(PAGE_SIZE, offsetRef.current, filter)
+      .getNaats(PAGE_SIZE, offsetRef.current, filter, channelId)
       .then((newNaats) => {
-        // Cache the results for this filter
+        // Cache the results for this channel + filter combination
         filterCache.set(offsetRef.current, newNaats);
 
         // Update state
@@ -117,7 +137,7 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
         setLoading(false);
         isLoadingRef.current = false;
       });
-  }, [hasMore, naats.length, filter]);
+  }, [hasMore, naats.length, filter, channelId, cacheKey]);
 
   /**
    * Refresh the naats list (pull-to-refresh)
@@ -127,9 +147,9 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     // Reset state
     offsetRef.current = 0;
 
-    // Clear cache for current filter only
-    if (cacheRef.current.has(filter)) {
-      cacheRef.current.get(filter)!.clear();
+    // Clear cache for current channel + filter combination only
+    if (cacheRef.current.has(cacheKey)) {
+      cacheRef.current.get(cacheKey)!.clear();
     }
 
     setNaats([]);
@@ -139,13 +159,18 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     isLoadingRef.current = true;
 
     try {
-      const freshNaats = await appwriteService.getNaats(PAGE_SIZE, 0, filter);
+      const freshNaats = await appwriteService.getNaats(
+        PAGE_SIZE,
+        0,
+        filter,
+        channelId
+      );
 
-      // Get or create cache for current filter
-      if (!cacheRef.current.has(filter)) {
-        cacheRef.current.set(filter, new Map());
+      // Get or create cache for current channel + filter combination
+      if (!cacheRef.current.has(cacheKey)) {
+        cacheRef.current.set(cacheKey, new Map());
       }
-      const filterCache = cacheRef.current.get(filter)!;
+      const filterCache = cacheRef.current.get(cacheKey)!;
 
       // Cache the results
       filterCache.set(0, freshNaats);
@@ -162,7 +187,7 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
       setLoading(false);
       isLoadingRef.current = false;
     }
-  }, [filter]);
+  }, [filter, channelId, cacheKey]);
 
   return {
     naats,

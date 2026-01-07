@@ -11,6 +11,8 @@ import {
   AppError,
   AudioErrorCode,
   AudioUrlResponse,
+  Channel,
+  ChannelDocument,
   ErrorCode,
   IAppwriteService,
   Naat,
@@ -66,21 +68,29 @@ export class AppwriteService implements IAppwriteService {
    * @param limit - Number of naats to fetch (default: 20)
    * @param offset - Number of naats to skip for pagination (default: 0)
    * @param sortBy - Sort order: "latest", "popular", or "oldest" (default: "latest")
+   * @param channelId - Optional channel ID to filter by (null = all channels)
    * @returns Promise resolving to array of Naat objects
    * @throws AppError if the request fails or times out
    */
   async getNaats(
     limit: number = 20,
     offset: number = 0,
-    sortBy: "latest" | "popular" | "oldest" = "latest"
+    sortBy: "latest" | "popular" | "oldest" = "latest",
+    channelId?: string | null
   ): Promise<Naat[]> {
     this.initialize();
 
-    const cacheKey = `naats_${limit}_${offset}_${sortBy}`;
+    const channelKey = channelId || "all";
+    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}`;
 
     try {
       // Build queries based on sort option
       const queries = [Query.limit(limit), Query.offset(offset)];
+
+      // Add channel filter if channelId is provided
+      if (channelId) {
+        queries.push(Query.equal("channelId", channelId));
+      }
 
       switch (sortBy) {
         case "popular":
@@ -119,6 +129,7 @@ export class AppwriteService implements IAppwriteService {
         limit,
         offset,
         sortBy,
+        channelId,
       });
 
       if (error instanceof AppError) {
@@ -189,28 +200,37 @@ export class AppwriteService implements IAppwriteService {
   /**
    * Searches for naats matching the provided query string
    * @param query - Search query to filter naats by title
+   * @param channelId - Optional channel ID to filter by (null = all channels)
    * @returns Promise resolving to array of matching Naat objects
    * @throws AppError if the search request fails or times out
    */
-  async searchNaats(query: string): Promise<Naat[]> {
+  async searchNaats(query: string, channelId?: string | null): Promise<Naat[]> {
     this.initialize();
 
     if (!query || query.trim() === "") {
       return [];
     }
 
-    const cacheKey = `search_${query}`;
+    const channelKey = channelId || "all";
+    const cacheKey = `search_${channelKey}_${query}`;
 
     try {
+      const queries = [
+        Query.search("title", query),
+        Query.orderDesc("uploadDate"),
+      ];
+
+      // Add channel filter if channelId is provided
+      if (channelId) {
+        queries.push(Query.equal("channelId", channelId));
+      }
+
       const response = await withCacheFallback(
         () =>
           this.database.listDocuments({
             databaseId: appwriteConfig.databaseId,
             collectionId: appwriteConfig.naatsCollectionId,
-            queries: [
-              Query.search("title", query),
-              Query.orderDesc("uploadDate"),
-            ],
+            queries,
           }),
         cacheKey,
         {
@@ -224,6 +244,7 @@ export class AppwriteService implements IAppwriteService {
       logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
         context: "searchNaats",
         query,
+        channelId,
       });
 
       if (error instanceof AppError) {
@@ -232,6 +253,61 @@ export class AppwriteService implements IAppwriteService {
 
       throw new AppError(
         "Search failed. Please check your connection and try again.",
+        ErrorCode.NETWORK_ERROR,
+        true
+      );
+    }
+  }
+
+  /**
+   * Fetches distinct channels from the database
+   * @returns Promise resolving to array of Channel objects sorted alphabetically
+   * @throws AppError if the request fails or times out
+   */
+  async getChannels(): Promise<Channel[]> {
+    this.initialize();
+
+    const cacheKey = "channels_list";
+
+    try {
+      const response = await withCacheFallback(
+        () =>
+          this.database.listDocuments({
+            databaseId: appwriteConfig.databaseId,
+            collectionId: appwriteConfig.channelsCollectionId,
+            queries: [
+              Query.orderAsc("channelName"), // Sort alphabetically by name
+              Query.limit(100), // Reasonable limit for channels
+            ],
+          }),
+        cacheKey,
+        {
+          timeoutMs: DEFAULT_TIMEOUT,
+          maxAttempts: 3,
+        }
+      );
+
+      // Map ChannelDocument to Channel interface
+      const channels: Channel[] = response.documents.map((doc) => {
+        const channelDoc = doc as unknown as ChannelDocument;
+        return {
+          id: channelDoc.channelId,
+          name: channelDoc.channelName,
+        };
+      });
+
+      return channels;
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+        context: "getChannels",
+      });
+
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError(
+        "Unable to load channels. Please check your internet connection.",
         ErrorCode.NETWORK_ERROR,
         true
       );
