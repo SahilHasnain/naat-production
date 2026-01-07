@@ -232,7 +232,7 @@ export default async ({ req, res, log, error: logError }) => {
     const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
     const channelId = process.env.YOUTUBE_CHANNEL_ID;
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound and Video";
+    const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound & Video";
 
     log(`Fetching videos from YouTube channel: ${channelId}`);
 

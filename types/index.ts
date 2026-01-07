@@ -117,6 +117,7 @@ export interface NaatCardProps {
   duration: number;
   uploadDate: string;
   channelName: string;
+  views: number;
   onPress: () => void;
 }
 

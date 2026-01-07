@@ -108,7 +108,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     </Text>
                   )}
                   <Text className="text-sm text-neutral-400 mt-1">
-                    {channelName || "Baghdadi Sound and Video"}
+                    {channelName || "Baghdadi Sound & Video"}
                   </Text>
                 </View>
 

@@ -104,7 +104,7 @@ export default function PlayerScreen() {
               {naat.title}
             </Text>
             <Text className="text-sm text-neutral-400 mt-0.5">
-              {naat.channelName || "Baghdadi Sound and Video"}
+              {naat.channelName || "Baghdadi Sound & Video"}
             </Text>
           </View>
         </View>

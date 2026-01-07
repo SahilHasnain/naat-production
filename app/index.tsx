@@ -114,6 +114,7 @@ export default function HomeScreen() {
         duration={item.duration}
         uploadDate={item.uploadDate}
         channelName={item.channelName}
+        views={item.views}
         onPress={() => handleNaatPress(item.$id)}
       />
     </View>

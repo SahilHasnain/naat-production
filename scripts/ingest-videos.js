@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { Client, Databases } = require("node-appwrite");
+const { Client, Databases, ID } = require("node-appwrite");
 require("dotenv").config();
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -40,52 +40,119 @@ function initAppwrite() {
   return new Databases(client);
 }
 
-async function fetchYouTubeVideos(maxResults = 50) {
-  const url = new URL("https://www.googleapis.com/youtube/v3/search");
-  url.searchParams.append("key", YOUTUBE_API_KEY);
-  url.searchParams.append("channelId", YOUTUBE_CHANNEL_ID);
-  url.searchParams.append("part", "snippet");
-  url.searchParams.append("order", "date");
-  url.searchParams.append("type", "video");
-  url.searchParams.append("maxResults", maxResults.toString());
+function toDocumentId(youtubeId) {
+  // Appwrite allows a-z, A-Z, 0-9 and underscore; max 36 chars
+  const sanitized = youtubeId.replace(/[^A-Za-z0-9_]/g, "_");
+  return sanitized.slice(0, 36) || ID.unique();
+}
 
-  const response = await fetch(url.toString());
+async function fetchYouTubeVideos(maxResults = 1000) {
+  const baseUrl = "https://www.googleapis.com/youtube/v3";
 
-  if (!response.ok) {
-    throw new Error(
-      `YouTube API error: ${response.status} ${response.statusText}`
+  try {
+    // First, get the uploads playlist ID for the channel
+    const channelResponse = await fetch(
+      `${baseUrl}/channels?part=contentDetails&id=${YOUTUBE_CHANNEL_ID}&key=${YOUTUBE_API_KEY}`
     );
-  }
 
-  const data = await response.json();
-  return data.items || [];
+    if (!channelResponse.ok) {
+      throw new Error(
+        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`
+      );
+    }
+
+    const channelData = await channelResponse.json();
+
+    if (!channelData.items || channelData.items.length === 0) {
+      throw new Error(`Channel not found: ${YOUTUBE_CHANNEL_ID}`);
+    }
+
+    const uploadsPlaylistId =
+      channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+    // Fetch videos from the uploads playlist with pagination
+    const allVideoItems = [];
+    let pageToken = null;
+    const perPage = 50; // YouTube API max per request
+
+    while (allVideoItems.length < maxResults) {
+      let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${perPage}&key=${YOUTUBE_API_KEY}`;
+
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+
+      const playlistResponse = await fetch(playlistUrl);
+
+      if (!playlistResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+        );
+      }
+
+      const playlistData = await playlistResponse.json();
+
+      if (!playlistData.items || playlistData.items.length === 0) {
+        break;
+      }
+
+      allVideoItems.push(...playlistData.items);
+      console.log(`   Fetched ${allVideoItems.length} videos so far...`);
+
+      pageToken = playlistData.nextPageToken;
+
+      if (!pageToken) {
+        break; // No more pages
+      }
+    }
+
+    if (allVideoItems.length === 0) {
+      return [];
+    }
+
+    const limitedVideoItems = allVideoItems.slice(0, maxResults);
+
+    // Fetch video details in batches (max 50 IDs per request)
+    const allVideosData = [];
+    const batchSize = 50;
+
+    for (let i = 0; i < limitedVideoItems.length; i += batchSize) {
+      const batch = limitedVideoItems.slice(i, i + batchSize);
+      const videoIds = batch
+        .map((item) => item.contentDetails.videoId)
+        .join(",");
+
+      const videosResponse = await fetch(
+        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`
+      );
+
+      if (!videosResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`
+        );
+      }
+
+      const videosData = await videosResponse.json();
+      allVideosData.push(...videosData.items);
+
+      console.log(`   Processed details for ${allVideosData.length} videos...`);
+    }
+
+    return allVideosData.map((video) => ({
+      id: { videoId: video.id },
+      snippet: video.snippet,
+      contentDetails: video.contentDetails,
+      statistics: video.statistics,
+    }));
+  } catch (error) {
+    throw new Error(`Failed to fetch YouTube videos: ${error.message}`);
+  }
 }
 
 async function fetchVideoDetails(videoIds) {
-  const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-  url.searchParams.append("key", YOUTUBE_API_KEY);
-  url.searchParams.append("part", "contentDetails,statistics");
-  url.searchParams.append("id", videoIds.join(","));
-
-  const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    throw new Error(
-      `YouTube API error: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const data = await response.json();
-
-  const videoDetailsMap = {};
-  (data.items || []).forEach((item) => {
-    videoDetailsMap[item.id] = {
-      duration: parseDuration(item.contentDetails.duration),
-      views: parseInt(item.statistics?.viewCount || "0", 10),
-    };
-  });
-
-  return videoDetailsMap;
+  // This function is no longer needed as we fetch details in fetchYouTubeVideos
+  // Keeping it for backwards compatibility but making it a no-op
+  return {};
 }
 
 function parseDuration(isoDuration) {
@@ -101,7 +168,8 @@ function parseDuration(isoDuration) {
 
 async function videoExists(databases, videoId) {
   try {
-    await databases.getDocument(DATABASE_ID, COLLECTION_ID, videoId);
+    const documentId = toDocumentId(videoId);
+    await databases.getDocument(DATABASE_ID, COLLECTION_ID, documentId);
     return true;
   } catch (error) {
     if (error.code === 404) {
@@ -113,22 +181,25 @@ async function videoExists(databases, videoId) {
 
 async function createVideoDocument(databases, video, videoDetails) {
   const videoId = video.id.videoId;
+  const documentId = toDocumentId(videoId);
   const snippet = video.snippet;
+  const contentDetails = video.contentDetails;
+  const statistics = video.statistics;
 
   const document = {
     title: snippet.title,
     videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
     thumbnailUrl:
       snippet.thumbnails.high?.url || snippet.thumbnails.default?.url,
-    duration: videoDetails.duration,
+    duration: parseDuration(contentDetails.duration),
     uploadDate: snippet.publishedAt,
     channelName: snippet.channelTitle,
     channelId: YOUTUBE_CHANNEL_ID,
     youtubeId: videoId,
-    views: videoDetails.views,
+    views: parseInt(statistics?.viewCount || "0", 10),
   };
 
-  await databases.createDocument(DATABASE_ID, COLLECTION_ID, videoId, document);
+  await databases.createDocument(DATABASE_ID, COLLECTION_ID, documentId, document);
   return document;
 }
 
@@ -146,11 +217,6 @@ async function ingestVideos() {
     const videos = await fetchYouTubeVideos();
     console.log(`✅ Found ${videos.length} videos`);
 
-    const videoIds = videos.map((v) => v.id.videoId);
-    console.log("⏱️  Fetching video details (duration & views)...");
-    const allVideoDetails = await fetchVideoDetails(videoIds);
-    console.log("✅ Video details fetched\n");
-
     let newCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
@@ -158,10 +224,6 @@ async function ingestVideos() {
     for (const video of videos) {
       const videoId = video.id.videoId;
       const title = video.snippet.title;
-      const videoDetails = allVideoDetails[videoId] || {
-        duration: 0,
-        views: 0,
-      };
 
       try {
         const exists = await videoExists(databases, videoId);
@@ -170,9 +232,19 @@ async function ingestVideos() {
           console.log(`⏭️  Skipped: ${title} (already exists)`);
           skippedCount++;
         } else {
-          await createVideoDocument(databases, video, videoDetails);
-          console.log(`✅ Added: ${title}`);
-          newCount++;
+          try {
+            await createVideoDocument(databases, video, null);
+            console.log(`✅ Added: ${title}`);
+            newCount++;
+          } catch (createError) {
+            // Handle duplicate ID error (race condition or concurrent ingestion)
+            if (createError.code === 409 || createError.message.includes('already exists')) {
+              console.log(`⏭️  Skipped: ${title} (already exists)`);
+              skippedCount++;
+            } else {
+              throw createError;
+            }
+          }
         }
       } catch (error) {
         console.error(`❌ Error processing ${title}:`, error.message);

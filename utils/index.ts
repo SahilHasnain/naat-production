@@ -19,3 +19,5 @@ export {
 } from "./errorHandling";
 
 export { formatRelativeTime } from "./dateUtils";
+
+export { formatViews } from "./numberUtils";

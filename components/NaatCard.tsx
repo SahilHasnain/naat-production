@@ -1,5 +1,5 @@
 import { NaatCardProps } from "@/types";
-import { formatRelativeTime } from "@/utils";
+import { formatRelativeTime, formatViews } from "@/utils";
 import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
@@ -11,7 +11,7 @@ const formatDuration = (seconds: number): string => {
 };
 
 const NaatCard: React.FC<NaatCardProps> = React.memo(
-  ({ title, thumbnail, duration, uploadDate, channelName, onPress }) => {
+  ({ title, thumbnail, duration, uploadDate, channelName, views, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
     const [isPressed, setIsPressed] = React.useState(false);
     const [imageLoading, setImageLoading] = React.useState(true);
@@ -128,18 +128,28 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               className="flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-300"
               numberOfLines={1}
             >
-              {channelName || "Baghdadi Sound and Video"}
+              {channelName || "Baghdadi Sound & Video"}
             </Text>
           </View>
 
-          {/* Upload date with icon */}
-          <View className="flex-row items-center">
-            <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
-              📅
-            </Text>
-            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
-              {formatRelativeTime(uploadDate)}
-            </Text>
+          {/* Upload date and views */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
+                📅
+              </Text>
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+                {formatRelativeTime(uploadDate)}
+              </Text>
+            </View>
+            <View className="flex-row items-center">
+              <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
+                👁️
+              </Text>
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+                {formatViews(views)} views
+              </Text>
+            </View>
           </View>
         </View>
       </Pressable>
