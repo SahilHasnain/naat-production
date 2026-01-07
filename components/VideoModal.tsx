@@ -224,6 +224,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
   // Handle URL expiration from AudioPlayer
   const handleUrlExpired = () => {
+    // Only refresh if we're not in the initial load phase
+    const timeSinceSet = Date.now() - audioUrlSetTime;
+    if (timeSinceSet < 10000) {
+      console.log("[VideoModal] Ignoring URL expiration during initial load");
+      // Treat as a regular error instead
+      setAudioError(
+        new Error("Failed to load audio. The URL may be invalid or expired.")
+      );
+      return;
+    }
+
+    console.log("[VideoModal] URL expired after initial load, refreshing...");
     refreshAudioUrl();
   };
 

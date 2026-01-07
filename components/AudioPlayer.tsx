@@ -113,9 +113,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   // Initialize audio and load the sound
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const loadAudio = async () => {
       try {
+        console.log(
+          "[AudioPlayer] Starting to load audio:",
+          audioUrl.substring(0, 50) + "..."
+        );
+
         // Configure audio mode
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
@@ -123,23 +129,47 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           shouldDuckAndroid: true,
         });
 
-        // Create and load sound
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: audioUrl },
-          { shouldPlay: false, volume: 1.0 },
-          onPlaybackStatusUpdate
-        );
+        console.log("[AudioPlayer] Audio mode configured, creating sound...");
+
+        // Create a timeout promise to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error("Audio loading timed out after 15 seconds"));
+          }, 15000);
+        });
+
+        // Race between loading audio and timeout
+        const { sound } = (await Promise.race([
+          Audio.Sound.createAsync(
+            { uri: audioUrl },
+            { shouldPlay: false, volume: 1.0 },
+            onPlaybackStatusUpdate
+          ),
+          timeoutPromise,
+        ])) as { sound: Audio.Sound };
+
+        // Clear timeout if successful
+        clearTimeout(timeoutId);
+
+        console.log("[AudioPlayer] Audio loaded successfully");
 
         if (isMounted) {
           soundRef.current = sound;
           setPlaybackState((prev) => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
+        clearTimeout(timeoutId);
+
+        console.error("[AudioPlayer] Error loading audio:", error);
+
         if (isMounted) {
           const err = error as Error;
 
           // Check if this is a URL expiration error
           if (isUrlExpiredError(err.message) && onUrlExpired) {
+            console.log(
+              "[AudioPlayer] Detected URL expiration, calling onUrlExpired"
+            );
             onUrlExpired();
             return;
           }
@@ -158,6 +188,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
       if (soundRef.current) {
         soundRef.current.unloadAsync();
       }

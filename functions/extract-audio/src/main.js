@@ -210,8 +210,13 @@ async function extractAudioFromRapidAPI(youtubeId, log, logError) {
       result.formats?.find((f) => f.mimeType?.includes("audio"))?.url;
 
     if (!audioUrl) {
+      log(
+        `RapidAPI response structure: ${JSON.stringify(Object.keys(result))}`
+      );
       throw new Error("No audio URL found in RapidAPI response");
     }
+
+    log(`Extracted audio URL (first 100 chars): ${audioUrl.substring(0, 100)}`);
 
     return {
       audioUrl,
