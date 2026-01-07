@@ -4,6 +4,7 @@ import { appwriteService } from "@/services/appwrite";
 import { storageService } from "@/services/storage";
 import { VideoPlayerProps } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
@@ -47,12 +48,25 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const [refreshAttempts, setRefreshAttempts] = React.useState(0);
   const [refreshFailed, setRefreshFailed] = React.useState(false);
 
+  // Video playback state
+  const [videoPlaying, setVideoPlaying] = React.useState(false);
+  const [videoDuration, setVideoDuration] = React.useState(0);
+  const [videoPosition, setVideoPosition] = React.useState(0);
+  const playerRef = React.useRef<any>(null);
+
   // Extract YouTube video ID from URL
   const getYouTubeId = (url: string): string => {
     const regExp =
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     return match && match[7].length === 11 ? match[7] : "";
+  };
+
+  // Format milliseconds to MM:SS
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
   const videoId = getYouTubeId(videoUrl);
@@ -64,6 +78,9 @@ const VideoModal: React.FC<VideoModalProps> = ({
       setAudioError(null);
       setRefreshAttempts(0);
       setRefreshFailed(false);
+      setVideoPosition(0);
+      setVideoDuration(0);
+      setVideoPlaying(false);
 
       // Load saved playback mode preference
       const loadPreference = async () => {
@@ -222,6 +239,50 @@ const VideoModal: React.FC<VideoModalProps> = ({
     }
   }, [visible, isFullscreen]);
 
+  // Update video position periodically
+  React.useEffect(() => {
+    if (!visible || mode !== "video") return;
+
+    const interval = setInterval(async () => {
+      if (playerRef.current) {
+        try {
+          const currentTime = await playerRef.current.getCurrentTime();
+          setVideoPosition(currentTime);
+        } catch {
+          // Ignore errors
+        }
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [visible, mode]);
+
+  // Handle video state changes
+  const onStateChange = React.useCallback((state: string) => {
+    if (state === "playing") {
+      setVideoPlaying(true);
+    } else if (state === "paused" || state === "ended") {
+      setVideoPlaying(false);
+    }
+  }, []);
+
+  // Seek to position in video
+  const seekToPosition = async (seconds: number) => {
+    if (playerRef.current) {
+      try {
+        await playerRef.current.seekTo(seconds, true);
+        setVideoPosition(seconds);
+      } catch {
+        // Ignore errors
+      }
+    }
+  };
+
+  // Toggle play/pause
+  const togglePlayPause = () => {
+    setVideoPlaying(!videoPlaying);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -282,35 +343,74 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
             {/* Player - conditionally render based on mode */}
             {mode === "video" ? (
-              <View className="relative flex-1 bg-black">
-                <YoutubePlayer
-                  height={300}
-                  videoId={videoId}
-                  play={false}
-                  onReady={() => setIsLoading(false)}
-                  onFullScreenChange={handleFullscreenChange}
-                  webViewStyle={{ opacity: isLoading ? 0 : 1 }}
-                  initialPlayerParams={{
-                    controls: true,
-                    modestbranding: true,
-                    rel: false,
-                  }}
-                />
+              <View className="flex-1 bg-black">
+                <View className="relative flex-1">
+                  <YoutubePlayer
+                    ref={playerRef}
+                    height={300}
+                    videoId={videoId}
+                    play={videoPlaying}
+                    onReady={() => {
+                      setIsLoading(false);
+                      // Get video duration
+                      if (playerRef.current) {
+                        playerRef.current
+                          .getDuration()
+                          .then((duration: number) => {
+                            setVideoDuration(duration);
+                          });
+                      }
+                    }}
+                    onChangeState={onStateChange}
+                    onFullScreenChange={handleFullscreenChange}
+                    webViewStyle={{ opacity: isLoading ? 0 : 1 }}
+                    initialPlayerParams={{
+                      controls: true,
+                      modestbranding: true,
+                      rel: false,
+                    }}
+                  />
 
-                {isLoading && (
-                  <View className="absolute inset-0 items-center justify-center bg-black">
-                    <ActivityIndicator
-                      size="large"
-                      color={colors.text.primary}
+                  {isLoading && (
+                    <View className="absolute inset-0 items-center justify-center bg-black">
+                      <ActivityIndicator
+                        size="large"
+                        color={colors.text.primary}
+                      />
+                      <Text className="mt-3 text-sm text-neutral-400">
+                        Loading video...
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Custom Video Controls */}
+                <View className="px-6 pb-4 bg-black">
+                  {/* Progress Bar */}
+                  <View className="mb-4">
+                    <Slider
+                      style={{ width: "100%", height: 40 }}
+                      minimumValue={0}
+                      maximumValue={videoDuration}
+                      value={videoPosition}
+                      onSlidingComplete={seekToPosition}
+                      minimumTrackTintColor={colors.accent.primary}
+                      maximumTrackTintColor={colors.background.elevated}
+                      thumbTintColor={colors.accent.primary}
                     />
-                    <Text className="mt-3 text-sm text-neutral-400">
-                      Loading video...
-                    </Text>
-                  </View>
-                )}
 
-                {/* Play as Audio Button - Bottom */}
-                <View className="absolute bottom-0 left-0 right-0 p-4">
+                    {/* Time Labels */}
+                    <View className="flex-row justify-between">
+                      <Text className="text-sm text-neutral-400">
+                        {formatTime(videoPosition)}
+                      </Text>
+                      <Text className="text-sm text-neutral-400">
+                        {formatTime(videoDuration)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Play as Audio Button */}
                   <Pressable
                     onPress={() => switchMode("audio")}
                     disabled={audioLoading}
