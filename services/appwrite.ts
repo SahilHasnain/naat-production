@@ -9,7 +9,6 @@ import { Client, Databases, Query } from "appwrite";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {
   AppError,
-  AudioErrorCode,
   AudioUrlResponse,
   Channel,
   ChannelDocument,
@@ -367,7 +366,15 @@ export class AppwriteService implements IAppwriteService {
         );
       }
 
-      return result;
+      // Use streaming proxy URL instead of direct YouTube URL to avoid 403 errors
+      const streamingUrl = appwriteConfig.audioStreamingFunctionUrl
+        ? `${appwriteConfig.audioStreamingFunctionUrl}?youtubeId=${youtubeId}`
+        : result.audioUrl; // Fallback to direct URL if streaming not configured
+
+      return {
+        ...result,
+        audioUrl: streamingUrl,
+      };
     } catch (error) {
       logError(wrapError(error, ErrorCode.API_ERROR), {
         context: "getAudioUrl",

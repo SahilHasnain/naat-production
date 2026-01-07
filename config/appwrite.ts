@@ -17,6 +17,8 @@ export const appwriteConfig = {
     process.env.EXPO_PUBLIC_APPWRITE_AUDIO_CACHE_COLLECTION_ID || "",
   audioExtractionFunctionUrl:
     process.env.EXPO_PUBLIC_AUDIO_EXTRACTION_FUNCTION_URL || "",
+  audioStreamingFunctionUrl:
+    process.env.EXPO_PUBLIC_AUDIO_STREAMING_FUNCTION_URL || "",
   rapidApiKey: process.env.EXPO_PUBLIC_RAPIDAPI_KEY || "",
 };
 
