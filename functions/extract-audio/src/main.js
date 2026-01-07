@@ -134,8 +134,8 @@ async function extractAudioUrl(youtubeId, log, logError) {
       // Add user agent to mimic browser
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      // Explicitly set extractor args for YouTube
-      extractorArgs: "youtube:player_client=android,web",
+      // Use iOS client - supports cookies and doesn't need signature solving
+      extractorArgs: "youtube:player_client=ios,web",
     };
 
     // Add cookies if available
