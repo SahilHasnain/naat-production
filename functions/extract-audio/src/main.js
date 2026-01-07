@@ -129,12 +129,13 @@ async function extractAudioUrl(youtubeId, log, logError) {
     // Build youtube-dl-exec options
     const options = {
       getUrl: true,
-      format: "bestaudio",
+      format: "bestaudio[ext=m4a]/bestaudio/best", // Fallback formats
       noCheckCertificates: true,
-      // Don't set noWarnings at all - let it use default
       // Add user agent to mimic browser
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      // Explicitly set extractor args for YouTube
+      extractorArgs: "youtube:player_client=android,web",
     };
 
     // Add cookies if available
