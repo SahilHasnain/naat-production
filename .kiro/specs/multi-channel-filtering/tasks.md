@@ -29,7 +29,7 @@
   - Update cache key to include channelId
   - _Requirements: 5.1, 5.2_
 
-- [ ] 5. Create ChannelFilterBar component
+- [x] 5. Create ChannelFilterBar component
   - Create new component with Channel interface and props
   - Render "All" option as first button (channelId = null)
   - Render discovered channels in alphabetical order
@@ -38,14 +38,14 @@
   - Use emoji icons ("🌐" for All, "📺" for channels)
   - _Requirements: 2.1, 2.5, 1.4_
 
-- [ ] 6. Refactor FilterBar to SortFilterBar
+- [x] 6. Refactor FilterBar to SortFilterBar
   - Rename FilterBar component to SortFilterBar
   - Rename FilterOption type to SortOption
   - Update imports in HomeScreen
   - Keep existing styling and behavior unchanged
   - _Requirements: 2.2_
 
-- [ ] 7. Update HomeScreen for two-row filter layout
+- [x] 7. Update HomeScreen for two-row filter layout
   - Add state for selectedChannelId
   - Integrate useChannels hook
   - Update useNaats hook call to pass channelId
@@ -57,13 +57,13 @@
   - Reset filters to defaults on app restart
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.3, 3.4, 6.1, 6.2, 6.4_
 
-- [ ] 8. Update pull-to-refresh to clear all filter caches
+- [x] 8. Update pull-to-refresh to clear all filter caches
   - Clear channel list cache in useChannels
   - Clear all naat caches in useNaats (all channel + sort combinations)
   - Maintain selected channel and sort filters after refresh
   - _Requirements: 6.1, 6.3_
 
-- [ ] 9. Update type definitions
+- [x] 9. Update type definitions
   - Add Channel interface to types/index.ts
   - Update UseNaatsReturn if needed
   - Add UseChannelsReturn interface

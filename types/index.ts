@@ -14,6 +14,9 @@ export interface Naat {
   updatedAt: string;
 }
 
+// Sort option type for filtering naats
+export type SortOption = "latest" | "popular" | "oldest";
+
 export interface Channel {
   id: string; // YouTube channel ID
   name: string; // Channel display name

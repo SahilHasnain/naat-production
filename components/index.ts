@@ -1,9 +1,11 @@
 export { default as AudioPlayer } from "./AudioPlayer";
 export { default as BackToTopButton } from "./BackToTopButton";
+export { default as ChannelFilterBar } from "./ChannelFilterBar";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as FilterBar } from "./FilterBar";
 export { default as NaatCard } from "./NaatCard";
 export { default as SearchBar } from "./SearchBar";
+export { default as SortFilterBar } from "./SortFilterBar";
 export { default as VideoModal } from "./VideoModal";
 export { default as VideoPlayer } from "./VideoPlayer";

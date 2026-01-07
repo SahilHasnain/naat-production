@@ -7,7 +7,7 @@ import type { Naat, UseNaatsReturn } from "../types";
  */
 const PAGE_SIZE = 20;
 
-export type FilterOption = "latest" | "popular" | "oldest";
+export type SortOption = "latest" | "popular" | "oldest";
 
 /**
  * Custom hook for managing naats data with pagination and caching
@@ -27,7 +27,7 @@ export type FilterOption = "latest" | "popular" | "oldest";
  */
 export function useNaats(
   channelId: string | null = null,
-  filter: FilterOption = "latest"
+  filter: SortOption = "latest"
 ): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -44,12 +44,12 @@ export function useNaats(
   const isLoadingRef = useRef<boolean>(false);
 
   // Track current filter and channel to detect changes
-  const currentFilterRef = useRef<FilterOption>(filter);
+  const currentFilterRef = useRef<SortOption>(filter);
   const currentChannelRef = useRef<string | null>(channelId);
 
   // Generate cache key from channelId and filter
   const getCacheKey = useCallback(
-    (channel: string | null, sortFilter: FilterOption): string => {
+    (channel: string | null, sortFilter: SortOption): string => {
       return `${channel || "all"}_${sortFilter}`;
     },
     []
@@ -141,16 +141,15 @@ export function useNaats(
 
   /**
    * Refresh the naats list (pull-to-refresh)
-   * Clears cache and reloads from the beginning
+   * Clears ALL caches (all channel + sort combinations) and reloads from the beginning
+   * Maintains the currently selected channel and sort filters
    */
   const refresh = useCallback(async (): Promise<void> => {
     // Reset state
     offsetRef.current = 0;
 
-    // Clear cache for current channel + filter combination only
-    if (cacheRef.current.has(cacheKey)) {
-      cacheRef.current.get(cacheKey)!.clear();
-    }
+    // Clear ALL caches (all channel + sort combinations)
+    cacheRef.current.clear();
 
     setNaats([]);
     setHasMore(true);

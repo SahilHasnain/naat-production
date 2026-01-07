@@ -1,11 +1,14 @@
 import { BackToTopButton, VideoModal } from "@/components";
+import ChannelFilterBar from "@/components/ChannelFilterBar";
 import EmptyState from "@/components/EmptyState";
-import FilterBar, { FilterOption } from "@/components/FilterBar";
 import NaatCard from "@/components/NaatCard";
 import SearchBar from "@/components/SearchBar";
+import SortFilterBar from "@/components/SortFilterBar";
+import { colors } from "@/constants/theme";
+import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
-import type { Naat } from "@/types";
+import type { Naat, SortOption } from "@/types";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +18,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@/constants/theme";
 
 export default function HomeScreen() {
   // Modal state
@@ -23,27 +25,37 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
 
   // Filter state
-  const [selectedFilter, setSelectedFilter] = useState<FilterOption>("latest");
+  const [selectedFilter, setSelectedFilter] = useState<SortOption>("latest");
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    null
+  );
 
   // Back to top state
   const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Data fetching hooks
-  const { naats, loading, error, hasMore, loadMore, refresh } =
-    useNaats(selectedFilter);
+  const {
+    channels,
+    loading: channelsLoading,
+    refresh: refreshChannels,
+  } = useChannels();
+  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(
+    selectedChannelId,
+    selectedFilter
+  );
   const {
     query,
     results: searchResults,
     loading: searchLoading,
     setQuery,
-  } = useSearch();
+  } = useSearch(selectedChannelId);
 
   // Load initial data on mount and when filter changes
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFilter]);
+  }, [selectedFilter, selectedChannelId]);
 
   // Determine which data to display
   const isSearching = query.trim().length > 0;
@@ -68,12 +80,17 @@ export default function HomeScreen() {
 
   // Handle pull-to-refresh
   const handleRefresh = async () => {
-    await refresh();
+    await Promise.all([refresh(), refreshChannels()]);
   };
 
   // Handle filter change
-  const handleFilterChange = (filter: FilterOption) => {
+  const handleFilterChange = (filter: SortOption) => {
     setSelectedFilter(filter);
+  };
+
+  // Handle channel filter change
+  const handleChannelChange = (channelId: string | null) => {
+    setSelectedChannelId(channelId);
   };
 
   // Handle infinite scroll
@@ -199,10 +216,18 @@ export default function HomeScreen() {
           }}
           ListHeaderComponent={
             !isSearching ? (
-              <FilterBar
-                selectedFilter={selectedFilter}
-                onFilterChange={handleFilterChange}
-              />
+              <>
+                <ChannelFilterBar
+                  channels={channels}
+                  selectedChannelId={selectedChannelId}
+                  onChannelChange={handleChannelChange}
+                  loading={channelsLoading}
+                />
+                <SortFilterBar
+                  selectedFilter={selectedFilter}
+                  onFilterChange={handleFilterChange}
+                />
+              </>
             ) : null
           }
           ListEmptyComponent={renderEmptyState}
