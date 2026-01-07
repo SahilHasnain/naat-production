@@ -246,7 +246,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <View className="flex-1 items-center justify-center p-8">
         <Image
           source={{ uri: thumbnailUrl }}
-          className="h-80 w-80 rounded-lg"
+          className="h-64 w-96 rounded-lg"
           resizeMode="cover"
         />
 

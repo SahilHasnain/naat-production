@@ -13,6 +13,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
 
 interface VideoModalProps extends VideoPlayerProps {
@@ -224,21 +225,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
     <Modal
       visible={visible}
       animationType="fade"
-      transparent={true}
+      transparent={false}
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.95)" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Backdrop with TouchableWithoutFeedback behavior */}
-      <View className="flex-1 bg-black/95">
-        {/* Top backdrop area - tappable to close */}
-        <Pressable className="flex-1" onPress={onClose} />
-
+      {/* Full Height Modal Container */}
+      <View className="flex-1 bg-black">
         {/* Modal Content Container */}
-        <View className="px-4">
+        <View className="flex-1">
           <View
-            className="bg-neutral-900 rounded-2xl overflow-hidden"
+            className="flex-1 bg-neutral-900 overflow-hidden"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 8 },
@@ -248,59 +246,43 @@ const VideoModal: React.FC<VideoModalProps> = ({
             }}
           >
             {/* Header */}
-            <View className="bg-neutral-800 px-5 py-4 border-b border-neutral-700">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1 mr-4">
-                  {title && (
-                    <Text
-                      className="text-base font-bold text-white leading-tight"
-                      numberOfLines={2}
-                    >
-                      {title}
+            <SafeAreaView className="bg-neutral-800 border-b border-neutral-700">
+              <View className="px-5 py-4">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 mr-4">
+                    {title && (
+                      <Text
+                        className="text-base font-bold text-white leading-tight"
+                        numberOfLines={2}
+                      >
+                        {title}
+                      </Text>
+                    )}
+                    <Text className="text-sm text-neutral-400 mt-1">
+                      {channelName || "Baghdadi Sound & Video"}
                     </Text>
+                  </View>
+
+                  {/* Switch to Video Button - only show in audio mode */}
+                  {mode === "audio" && (
+                    <Pressable
+                      onPress={() => switchMode("video")}
+                      className="rounded-full bg-neutral-700 p-2 active:bg-neutral-600"
+                      accessibilityLabel="Switch to video mode"
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="videocam" size={30} color="#ffffff" />
+                    </Pressable>
                   )}
-                  <Text className="text-sm text-neutral-400 mt-1">
-                    {channelName || "Baghdadi Sound & Video"}
-                  </Text>
                 </View>
-
-                {/* Mode Toggle Button */}
-                <Pressable
-                  onPress={() =>
-                    switchMode(mode === "video" ? "audio" : "video")
-                  }
-                  className="mr-3 rounded-full bg-neutral-700 p-2 active:bg-neutral-600"
-                  accessibilityLabel={`Switch to ${mode === "video" ? "audio" : "video"} mode`}
-                  accessibilityRole="button"
-                  disabled={audioLoading}
-                >
-                  {audioLoading ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <Ionicons
-                      name={mode === "video" ? "musical-notes" : "videocam"}
-                      size={20}
-                      color="#ffffff"
-                    />
-                  )}
-                </Pressable>
-
-                <Pressable
-                  onPress={onClose}
-                  className="rounded-full bg-neutral-700 p-2 active:bg-neutral-600"
-                  accessibilityLabel="Close video"
-                  accessibilityRole="button"
-                >
-                  <Text className="text-xl text-white font-bold">✕</Text>
-                </Pressable>
               </View>
-            </View>
+            </SafeAreaView>
 
             {/* Player - conditionally render based on mode */}
             {mode === "video" ? (
-              <View className="relative bg-black" style={{ height: 250 }}>
+              <View className="relative flex-1 bg-black">
                 <YoutubePlayer
-                  height={250}
+                  height={300}
                   videoId={videoId}
                   play={false}
                   onReady={() => setIsLoading(false)}
@@ -321,9 +303,48 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     </Text>
                   </View>
                 )}
+
+                {/* Play as Audio Button - Bottom */}
+                <View className="absolute bottom-0 left-0 right-0 p-4">
+                  <Pressable
+                    onPress={() => switchMode("audio")}
+                    disabled={audioLoading}
+                    className="flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
+                    style={{
+                      backgroundColor: "rgba(29, 185, 84, 0.95)",
+                      shadowColor: "#1DB954",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.6,
+                      shadowRadius: 12,
+                      elevation: 8,
+                    }}
+                    accessibilityLabel="Switch to audio mode"
+                    accessibilityRole="button"
+                  >
+                    {audioLoading ? (
+                      <>
+                        <ActivityIndicator size="small" color="#ffffff" />
+                        <Text className="ml-3 text-base font-bold text-white">
+                          Loading Audio...
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="musical-notes"
+                          size={24}
+                          color="#ffffff"
+                        />
+                        <Text className="ml-3 text-base font-bold text-white">
+                          Play as Audio Only
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             ) : audioUrl ? (
-              <View style={{ height: 500 }}>
+              <View className="flex-1">
                 {isRefreshing && (
                   <View className="absolute inset-0 z-10 items-center justify-center bg-black/80">
                     <ActivityIndicator size="large" color="#ffffff" />
@@ -343,7 +364,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                 />
               </View>
             ) : (
-              <View className="bg-black" style={{ height: 250 }}>
+              <View className="flex-1 bg-black">
                 <View className="flex-1 items-center justify-center">
                   <ActivityIndicator size="large" color="#ffffff" />
                   <Text className="mt-3 text-sm text-neutral-400">
@@ -399,17 +420,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
               </View>
             )}
           </View>
-
-          {/* Close hint */}
-          <Pressable onPress={onClose}>
-            <Text className="text-center text-sm text-neutral-500 mt-6 mb-4">
-              Tap outside to close
-            </Text>
-          </Pressable>
         </View>
-
-        {/* Bottom backdrop area - tappable to close */}
-        <Pressable className="flex-1" onPress={onClose} />
       </View>
     </Modal>
   );

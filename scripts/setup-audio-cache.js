@@ -11,25 +11,25 @@ const sdk = require("node-appwrite");
 const path = require("path");
 const fs = require("fs");
 
-// Try to load from .env
-const envPath = path.join(__dirname, "..", ".env");
+// Try to load from .env.appwrite
+const envPath = path.join(__dirname, "..", ".env.appwrite");
 require("dotenv").config({ path: envPath });
 
 // Configuration from environment variables
 const config = {
-  endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
-  projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
-  apiKey: process.env.APPWRITE_SECRET_KEY,
-  databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
+  endpoint: process.env.APPWRITE_ENDPOINT,
+  projectId: process.env.APPWRITE_PROJECT_ID,
+  apiKey: process.env.APPWRITE_API_KEY,
+  databaseId: process.env.APPWRITE_DATABASE_ID,
 };
 
 // Validate configuration
 function validateConfig() {
   const missing = [];
-  if (!config.endpoint) missing.push("EXPO_PUBLIC_APPWRITE_ENDPOINT");
-  if (!config.projectId) missing.push("EXPO_PUBLIC_APPWRITE_PROJECT_ID");
-  if (!config.apiKey) missing.push("APPWRITE_SECRET_KEY");
-  if (!config.databaseId) missing.push("EXPO_PUBLIC_APPWRITE_DATABASE_ID");
+  if (!config.endpoint) missing.push("APPWRITE_ENDPOINT");
+  if (!config.projectId) missing.push("APPWRITE_PROJECT_ID");
+  if (!config.apiKey) missing.push("APPWRITE_API_KEY");
+  if (!config.databaseId) missing.push("APPWRITE_DATABASE_ID");
 
   if (missing.length > 0) {
     console.error("❌ Missing required environment variables:");
