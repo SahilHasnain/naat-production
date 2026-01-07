@@ -11,6 +11,8 @@ export const appwriteConfig = {
   projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID || "",
   databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID || "",
   naatsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || "",
+  audioExtractionFunctionUrl:
+    process.env.EXPO_PUBLIC_AUDIO_EXTRACTION_FUNCTION_URL || "",
 };
 
 /**

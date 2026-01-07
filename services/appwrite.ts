@@ -7,7 +7,14 @@
 
 import { Client, Databases, Query } from "appwrite";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
-import { AppError, ErrorCode, IAppwriteService, Naat } from "../types";
+import {
+  AppError,
+  AudioErrorCode,
+  AudioUrlResponse,
+  ErrorCode,
+  IAppwriteService,
+  Naat,
+} from "../types";
 import {
   DEFAULT_TIMEOUT,
   logError,
@@ -226,6 +233,78 @@ export class AppwriteService implements IAppwriteService {
       throw new AppError(
         "Search failed. Please check your connection and try again.",
         ErrorCode.NETWORK_ERROR,
+        true
+      );
+    }
+  }
+
+  /**
+   * Extracts audio stream URL from a YouTube video
+   * @param youtubeId - The YouTube video ID
+   * @returns Promise resolving to AudioUrlResponse with audio URL and metadata
+   * @throws AppError if the extraction fails or function is not configured
+   */
+  async getAudioUrl(youtubeId: string): Promise<AudioUrlResponse> {
+    if (!youtubeId || youtubeId.trim() === "") {
+      throw new AppError(
+        "Invalid YouTube ID provided.",
+        ErrorCode.API_ERROR,
+        false
+      );
+    }
+
+    if (!appwriteConfig.audioExtractionFunctionUrl) {
+      throw new AppError(
+        "Audio extraction function is not configured. Please set EXPO_PUBLIC_AUDIO_EXTRACTION_FUNCTION_URL.",
+        ErrorCode.API_ERROR,
+        false
+      );
+    }
+
+    try {
+      const response = await fetch(appwriteConfig.audioExtractionFunctionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ youtubeId }),
+      });
+
+      if (!response.ok) {
+        throw new AppError(
+          `Function execution failed with status ${response.status}`,
+          ErrorCode.API_ERROR,
+          true
+        );
+      }
+
+      // Parse the direct response from the function
+      const result: AudioUrlResponse = await response.json();
+
+      // Check if the extraction was successful
+      if (!result.success) {
+        const errorCode = result.code as AudioErrorCode;
+        throw new AppError(
+          result.error || "Failed to extract audio URL.",
+          ErrorCode.API_ERROR,
+          errorCode !== AudioErrorCode.YTDLP_NOT_FOUND // Recoverable unless service is unavailable
+        );
+      }
+
+      return result;
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.API_ERROR), {
+        context: "getAudioUrl",
+        youtubeId,
+      });
+
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError(
+        "Unable to extract audio URL. Please try again.",
+        ErrorCode.API_ERROR,
         true
       );
     }

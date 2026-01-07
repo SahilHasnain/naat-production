@@ -100,6 +100,7 @@ export interface IAppwriteService {
   ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
   searchNaats(query: string): Promise<Naat[]>;
+  getAudioUrl(youtubeId: string): Promise<AudioUrlResponse>;
 }
 
 export interface IStorageService {
@@ -144,4 +145,24 @@ export interface IngestionResult {
   added: number;
   skipped: number;
   errors: string[];
+}
+
+// Audio extraction types
+export interface AudioUrlResponse {
+  success: boolean;
+  audioUrl?: string;
+  expiresAt?: number;
+  format?: string;
+  quality?: string;
+  error?: string;
+  code?: string;
+}
+
+export enum AudioErrorCode {
+  INVALID_ID = "INVALID_ID",
+  EXTRACTION_FAILED = "EXTRACTION_FAILED",
+  YTDLP_NOT_FOUND = "YTDLP_NOT_FOUND",
+  TIMEOUT = "TIMEOUT",
+  NETWORK_ERROR = "NETWORK_ERROR",
+  URL_EXPIRED = "URL_EXPIRED",
 }

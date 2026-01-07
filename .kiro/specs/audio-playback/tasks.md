@@ -1,33 +1,33 @@
 # Implementation Plan
 
-- [ ] 1. Set up audio extraction Appwrite function infrastructure
+- [x] 1. Set up audio extraction Appwrite function infrastructure
   - Create function directory structure at `functions/extract-audio/`
   - Create `package.json` with yt-dlp dependency configuration
   - Set up Appwrite function configuration file
   - _Requirements: 2.1, 4.3_
 
-- [ ] 2. Implement audio URL extraction service
-  - [ ] 2.1 Create main function handler with request validation
+- [x] 2. Implement audio URL extraction service
+  - [x] 2.1 Create main function handler with request validation
     - Write function entry point in `functions/extract-audio/src/main.js`
     - Implement YouTube ID validation (11 chars, alphanumeric + underscore/hyphen)
     - Parse and validate request body
     - _Requirements: 4.4, 2.1_
 
-  - [ ] 2.2 Implement yt-dlp wrapper for audio extraction
+  - [x] 2.2 Implement yt-dlp wrapper for audio extraction
     - Write yt-dlp command execution logic using child_process
     - Use flags: `--get-url -f bestaudio` to extract best audio stream
     - Implement 10-second timeout for extraction
     - Parse yt-dlp output to extract audio URL and metadata
     - _Requirements: 2.1, 4.1_
 
-  - [ ] 2.3 Implement in-memory URL caching with TTL
+  - [x] 2.3 Implement in-memory URL caching with TTL
     - Create Map-based cache structure for storing audio URLs
     - Implement cache key generation from YouTube ID
     - Add cache expiration logic (5-hour TTL)
     - Write cache hit/miss logic in request handler
     - _Requirements: 2.2, 2.3_
 
-  - [ ] 2.4 Add comprehensive error handling
+  - [x] 2.4 Add comprehensive error handling
     - Handle yt-dlp not found error
     - Handle invalid YouTube ID errors
     - Handle extraction timeout errors
@@ -35,13 +35,13 @@
     - Return structured error responses with error codes
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 3. Extend Appwrite service for audio URL retrieval
-  - [ ] 3.1 Add audio extraction function configuration
+- [x] 3. Extend Appwrite service for audio URL retrieval
+  - [x] 3.1 Add audio extraction function configuration
     - Add `AUDIO_EXTRACTION_FUNCTION_ID` to environment variables
     - Update `services/appwrite.ts` with function ID constant
     - _Requirements: 2.1_
 
-  - [ ] 3.2 Implement getAudioUrl method
+  - [x] 3.2 Implement getAudioUrl method
     - Write `getAudioUrl(youtubeId: string)` method in appwrite service
     - Call Appwrite function execution API
     - Parse and return audio URL response
