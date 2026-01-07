@@ -78,7 +78,7 @@ async function runTest() {
 
   try {
     // Import the function
-    const { default: handler } = await import("./src/main.js");
+    const { default: handler } = await import("../ingest-videos/src/main.js");
 
     // Execute the function
     console.log("🚀 Executing function...\n");

@@ -33,7 +33,7 @@ try {
 }
 
 // Import the function
-const functionModule = await import("./src/main.js");
+const functionModule = await import("../extract-audio/src/main.js");
 const functionHandler = functionModule.default;
 
 // Mock Appwrite context

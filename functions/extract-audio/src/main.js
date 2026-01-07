@@ -32,11 +32,6 @@
  * }
  */
 
-import { execFile } from "child_process";
-import { promisify } from "util";
-
-const execFileAsync = promisify(execFile);
-
 // In-memory cache for audio URLs
 const audioUrlCache = new Map();
 
@@ -63,7 +58,7 @@ function isValidYouTubeId(youtubeId) {
 }
 
 /**
- * Extracts audio stream URL from YouTube using yt-dlp
+ * Extracts audio stream URL from YouTube using youtube-dl-exec
  * @param {string} youtubeId - YouTube video ID
  * @param {Function} log - Logging function
  * @param {Function} logError - Error logging function
@@ -75,25 +70,25 @@ async function extractAudioUrl(youtubeId, log, logError) {
   log(`Extracting audio URL for: ${youtubeUrl}`);
 
   try {
-    // Execute yt-dlp with timeout
-    const { stdout, stderr } = await execFileAsync(
-      "yt-dlp",
-      ["--get-url", "-f", "bestaudio", youtubeUrl],
-      {
-        timeout: EXTRACTION_TIMEOUT_MS,
-        maxBuffer: 1024 * 1024, // 1MB buffer
-      }
-    );
+    // Execute youtube-dl-exec with timeout
+    const result = await Promise.race([
+      youtubedl(youtubeUrl, {
+        getUrl: true,
+        format: "bestaudio",
+        noCheckCertificates: true,
+        noWarnings: true,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("TIMEOUT")), EXTRACTION_TIMEOUT_MS)
+      ),
+    ]);
 
-    if (stderr) {
-      log(`yt-dlp stderr: ${stderr}`);
-    }
-
-    // Parse the output - yt-dlp returns the direct URL
-    const audioUrl = stdout.trim();
+    // The result should be the direct URL
+    const audioUrl =
+      typeof result === "string" ? result.trim() : result.url?.trim();
 
     if (!audioUrl || !audioUrl.startsWith("http")) {
-      throw new Error("Invalid audio URL returned from yt-dlp");
+      throw new Error("Invalid audio URL returned from youtube-dl-exec");
     }
 
     log(`Successfully extracted audio URL (length: ${audioUrl.length})`);
@@ -119,28 +114,30 @@ async function extractAudioUrl(youtubeId, log, logError) {
     };
   } catch (err) {
     // Handle specific error types
-    if (err.code === "ENOENT") {
-      logError("yt-dlp not found in system PATH");
-      throw {
-        code: "YTDLP_NOT_FOUND",
-        message: "yt-dlp is not installed or not found in PATH",
-      };
-    }
-
-    if (err.killed || err.signal === "SIGTERM") {
-      logError(`yt-dlp extraction timeout after ${EXTRACTION_TIMEOUT_MS}ms`);
+    if (err.message === "TIMEOUT") {
+      logError(
+        `youtube-dl-exec extraction timeout after ${EXTRACTION_TIMEOUT_MS}ms`
+      );
       throw {
         code: "TIMEOUT",
         message: `Audio extraction timed out after ${EXTRACTION_TIMEOUT_MS / 1000} seconds`,
       };
     }
 
+    if (err.message && err.message.includes("not found")) {
+      logError("youtube-dl-exec not found or failed to initialize");
+      throw {
+        code: "YTDLP_NOT_FOUND",
+        message: "youtube-dl-exec is not available or failed to initialize",
+      };
+    }
+
     // Network or YouTube API errors
     if (
-      err.stderr &&
-      (err.stderr.includes("ERROR") || err.stderr.includes("unavailable"))
+      err.message &&
+      (err.message.includes("ERROR") || err.message.includes("unavailable"))
     ) {
-      logError(`YouTube error: ${err.stderr}`);
+      logError(`YouTube error: ${err.message}`);
       throw {
         code: "NETWORK_ERROR",
         message:
@@ -149,7 +146,7 @@ async function extractAudioUrl(youtubeId, log, logError) {
     }
 
     // Generic extraction failure
-    logError(`yt-dlp extraction failed: ${err.message}`);
+    logError(`youtube-dl-exec extraction failed: ${err.message}`);
     throw {
       code: "EXTRACTION_FAILED",
       message: `Failed to extract audio URL: ${err.message}`,

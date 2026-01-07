@@ -9,7 +9,8 @@
     "build": "echo 'Build complete'"
   },
   "dependencies": {
-    "node-appwrite": "^21.1.0"
+    "node-appwrite": "^21.1.0",
+    "youtube-dl-exec": "^2.4.13"
   },
   "devDependencies": {
     "prettier": "^3.0.0"
