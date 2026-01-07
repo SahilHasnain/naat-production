@@ -47,6 +47,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [refreshAttempts, setRefreshAttempts] = React.useState(0);
   const [refreshFailed, setRefreshFailed] = React.useState(false);
+  const [audioUrlSetTime, setAudioUrlSetTime] = React.useState<number>(0);
 
   // Video playback state
   const [videoPlaying, setVideoPlaying] = React.useState(false);
@@ -98,6 +99,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
             if (response.success && response.audioUrl) {
               setAudioUrl(response.audioUrl);
+              setAudioUrlSetTime(Date.now());
             } else {
               // If audio extraction fails, fall back to video mode
               setMode("video");
@@ -130,6 +132,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
         if (response.success && response.audioUrl) {
           setAudioUrl(response.audioUrl);
+          setAudioUrlSetTime(Date.now());
           setMode(newMode);
           // Save preference immediately after successful mode change
           await storageService.savePlaybackMode(newMode);
@@ -161,6 +164,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const refreshAudioUrl = async () => {
     if (isRefreshing) return; // Prevent multiple simultaneous refreshes
 
+    // Prevent refresh if audio URL was just set (within 10 seconds)
+    // This avoids interrupting initial load due to slow network
+    const timeSinceSet = Date.now() - audioUrlSetTime;
+    if (timeSinceSet < 10000) {
+      console.log(
+        "Ignoring refresh request - audio URL was just set",
+        timeSinceSet,
+        "ms ago"
+      );
+      return;
+    }
+
     setIsRefreshing(true);
     setAudioError(null);
     setRefreshFailed(false);
@@ -174,6 +189,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
       if (response.success && response.audioUrl) {
         setAudioUrl(response.audioUrl);
+        setAudioUrlSetTime(Date.now());
         setRefreshAttempts(0); // Reset attempts on success
         setRefreshFailed(false);
         // Position will be preserved by the AudioPlayer component

@@ -38,19 +38,16 @@ const formatTime = (millis: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
-// Check if error indicates URL expiration
+// Check if error indicates URL expiration (not just network issues)
 const isUrlExpiredError = (error: string): boolean => {
   const errorLower = error.toLowerCase();
-  // Check for common HTTP error codes and messages that indicate expired URLs
+  // Only treat as expired if we get specific HTTP errors from the CDN
+  // Don't treat generic network/loading errors as expiration
   return (
     errorLower.includes("403") ||
     errorLower.includes("404") ||
     errorLower.includes("forbidden") ||
-    errorLower.includes("not found") ||
-    errorLower.includes("expired") ||
-    errorLower.includes("invalid url") ||
-    errorLower.includes("network error") ||
-    errorLower.includes("failed to load")
+    errorLower.includes("expired")
   );
 };
 
