@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "sharp": "node scripts/generate-adaptive-icon.js",
     "setup:appwrite": "node scripts/setup-appwrite.js",
     "ingest:videos": "node scripts/ingest-videos.js",
     "test": "jest",
