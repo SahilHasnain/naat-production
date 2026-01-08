@@ -1,6 +1,7 @@
 import AudioPlayer from "@/components/AudioPlayer";
 import { colors, shadows } from "@/constants/theme";
 import { appwriteService } from "@/services/appwrite";
+import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import { VideoPlayerProps } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +26,7 @@ interface VideoModalProps extends VideoPlayerProps {
   channelName?: string;
   thumbnailUrl?: string;
   youtubeId?: string;
+  audioId?: string; // Appwrite Storage audio file ID
 }
 
 const VideoModal: React.FC<VideoModalProps> = ({
@@ -35,6 +37,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
   channelName,
   thumbnailUrl,
   youtubeId: propYoutubeId,
+  audioId: propAudioId,
 }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -44,10 +47,12 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
   const [audioLoading, setAudioLoading] = React.useState(false);
   const [audioError, setAudioError] = React.useState<Error | null>(null);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [refreshAttempts, setRefreshAttempts] = React.useState(0);
-  const [refreshFailed, setRefreshFailed] = React.useState(false);
-  const [audioUrlSetTime, setAudioUrlSetTime] = React.useState<number>(0);
+  const [isLocalFile, setIsLocalFile] = React.useState(false);
+
+  // Download state
+  const [isDownloaded, setIsDownloaded] = React.useState(false);
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const [downloadProgress, setDownloadProgress] = React.useState(0);
 
   // Video playback state
   const [videoPlaying, setVideoPlaying] = React.useState(false);
@@ -77,8 +82,6 @@ const VideoModal: React.FC<VideoModalProps> = ({
     if (visible) {
       setIsLoading(true);
       setAudioError(null);
-      setRefreshAttempts(0);
-      setRefreshFailed(false);
       setVideoPosition(0);
       setVideoDuration(0);
       setVideoPlaying(false);
@@ -94,14 +97,32 @@ const VideoModal: React.FC<VideoModalProps> = ({
           // If saved mode is audio, fetch audio URL
           if (initialMode === "audio") {
             setAudioLoading(true);
-            const ytId = propYoutubeId || getYouTubeId(videoUrl);
-            const response = await appwriteService.getAudioUrl(ytId);
+
+            // Check if audio is downloaded first
+            if (propAudioId) {
+              const downloaded =
+                await audioDownloadService.isDownloaded(propAudioId);
+              setIsDownloaded(downloaded);
+
+              if (downloaded) {
+                // Use local file
+                const localPath =
+                  audioDownloadService.getLocalPath(propAudioId);
+                setAudioUrl(localPath);
+                setIsLocalFile(true);
+                setAudioLoading(false);
+                return;
+              }
+            }
+
+            // Otherwise fetch from storage
+            const response = await appwriteService.getAudioUrl(propAudioId);
 
             if (response.success && response.audioUrl) {
               setAudioUrl(response.audioUrl);
-              setAudioUrlSetTime(Date.now());
+              setIsLocalFile(false);
             } else {
-              // If audio extraction fails, fall back to video mode
+              // If audio not available, fall back to video mode
               setMode("video");
             }
             setAudioLoading(false);
@@ -115,7 +136,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
       loadPreference();
     }
-  }, [visible, propYoutubeId, videoUrl]);
+  }, [visible, propAudioId]);
 
   // Switch between video and audio modes
   const switchMode = async (newMode: "video" | "audio") => {
@@ -127,17 +148,37 @@ const VideoModal: React.FC<VideoModalProps> = ({
         setAudioLoading(true);
         setAudioError(null);
 
-        const ytId = propYoutubeId || getYouTubeId(videoUrl);
-        const response = await appwriteService.getAudioUrl(ytId);
+        // Check if audio is downloaded first
+        if (propAudioId) {
+          const downloaded =
+            await audioDownloadService.isDownloaded(propAudioId);
+          setIsDownloaded(downloaded);
+
+          if (downloaded) {
+            // Use local file
+            const localPath = audioDownloadService.getLocalPath(propAudioId);
+            setAudioUrl(localPath);
+            setIsLocalFile(true);
+            setMode(newMode);
+            await storageService.savePlaybackMode(newMode);
+            setAudioLoading(false);
+            return;
+          }
+        }
+
+        // Otherwise fetch from storage
+        const response = await appwriteService.getAudioUrl(propAudioId);
 
         if (response.success && response.audioUrl) {
           setAudioUrl(response.audioUrl);
-          setAudioUrlSetTime(Date.now());
+          setIsLocalFile(false);
           setMode(newMode);
           // Save preference immediately after successful mode change
           await storageService.savePlaybackMode(newMode);
         } else {
-          throw new Error(response.error || "Failed to extract audio URL");
+          throw new Error(
+            response.error || "Audio not available for this naat."
+          );
         }
       } else {
         // Switch to video or audio (if URL already exists)
@@ -160,88 +201,80 @@ const VideoModal: React.FC<VideoModalProps> = ({
     // Position tracking can be implemented here if needed for future features
   };
 
-  // Refresh audio URL when it expires
-  const refreshAudioUrl = async () => {
-    if (isRefreshing) return; // Prevent multiple simultaneous refreshes
-
-    // Prevent refresh if audio URL was just set (within 10 seconds)
-    // This avoids interrupting initial load due to slow network
-    const timeSinceSet = Date.now() - audioUrlSetTime;
-    if (timeSinceSet < 10000) {
-      console.log(
-        "Ignoring refresh request - audio URL was just set",
-        timeSinceSet,
-        "ms ago"
-      );
-      return;
-    }
-
-    setIsRefreshing(true);
-    setAudioError(null);
-    setRefreshFailed(false);
-
-    const maxRetries = 2;
-    let attempts = refreshAttempts;
-
-    try {
-      const ytId = propYoutubeId || getYouTubeId(videoUrl);
-      const response = await appwriteService.getAudioUrl(ytId);
-
-      if (response.success && response.audioUrl) {
-        setAudioUrl(response.audioUrl);
-        setAudioUrlSetTime(Date.now());
-        setRefreshAttempts(0); // Reset attempts on success
-        setRefreshFailed(false);
-        // Position will be preserved by the AudioPlayer component
-      } else {
-        throw new Error(response.error || "Failed to refresh audio URL");
-      }
-    } catch {
-      attempts += 1;
-      setRefreshAttempts(attempts);
-
-      if (attempts >= maxRetries) {
-        // Max retries reached, mark as failed
-        setRefreshFailed(true);
-        setAudioError(
-          new Error(
-            "Unable to refresh audio after multiple attempts. Please try switching to video mode."
-          )
-        );
-      } else {
-        // Retry after a short delay
-        setTimeout(() => {
-          refreshAudioUrl();
-        }, 2000);
-        return; // Don't set isRefreshing to false yet
-      }
-    } finally {
-      if (refreshAttempts >= maxRetries || refreshFailed) {
-        setIsRefreshing(false);
-      }
-    }
-  };
-
-  // Handle URL expiration from AudioPlayer
-  const handleUrlExpired = () => {
-    // Only refresh if we're not in the initial load phase
-    const timeSinceSet = Date.now() - audioUrlSetTime;
-    if (timeSinceSet < 10000) {
-      console.log("[VideoModal] Ignoring URL expiration during initial load");
-      // Treat as a regular error instead
-      setAudioError(
-        new Error("Failed to load audio. The URL may be invalid or expired.")
-      );
-      return;
-    }
-
-    console.log("[VideoModal] URL expired after initial load, refreshing...");
-    refreshAudioUrl();
-  };
-
   // Handle audio playback errors
   const handleAudioError = (error: Error) => {
     setAudioError(error);
+  };
+
+  // Check if audio is downloaded
+  const checkDownloadStatus = async () => {
+    if (!propAudioId) return;
+
+    try {
+      const downloaded = await audioDownloadService.isDownloaded(propAudioId);
+      setIsDownloaded(downloaded);
+
+      // If downloaded, use local file
+      if (downloaded) {
+        const localPath = audioDownloadService.getLocalPath(propAudioId);
+        setAudioUrl(localPath);
+        setIsLocalFile(true);
+      }
+    } catch (error) {
+      console.error("Failed to check download status:", error);
+    }
+  };
+
+  // Download audio
+  const handleDownload = async () => {
+    if (!propAudioId || !audioUrl || isLocalFile) return;
+
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
+
+      const localPath = await audioDownloadService.downloadAudio(
+        propAudioId,
+        audioUrl,
+        propYoutubeId || "",
+        title || "",
+        (progress) => {
+          setDownloadProgress(progress.progress);
+        }
+      );
+
+      setIsDownloaded(true);
+      setAudioUrl(localPath);
+      setIsLocalFile(true);
+    } catch (error) {
+      console.error("Download failed:", error);
+      setAudioError(
+        error instanceof Error ? error : new Error("Download failed")
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Delete downloaded audio
+  const handleDeleteDownload = async () => {
+    if (!propAudioId) return;
+
+    try {
+      await audioDownloadService.deleteAudio(propAudioId);
+      setIsDownloaded(false);
+
+      // Switch back to streaming
+      if (propAudioId) {
+        const response = await appwriteService.getAudioUrl(propAudioId);
+        if (response.success && response.audioUrl) {
+          setAudioUrl(response.audioUrl);
+          setIsLocalFile(false);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete download:", error);
+    }
   };
 
   // Handle fullscreen changes
@@ -477,17 +510,6 @@ const VideoModal: React.FC<VideoModalProps> = ({
               </View>
             ) : audioUrl ? (
               <View className="flex-1">
-                {isRefreshing && (
-                  <View className="absolute inset-0 z-10 items-center justify-center bg-black/80">
-                    <ActivityIndicator
-                      size="large"
-                      color={colors.text.primary}
-                    />
-                    <Text className="mt-3 text-sm text-neutral-400">
-                      Refreshing audio...
-                    </Text>
-                  </View>
-                )}
                 <AudioPlayer
                   audioUrl={audioUrl}
                   title={title || ""}
@@ -495,8 +517,63 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   thumbnailUrl={thumbnailUrl || ""}
                   onError={handleAudioError}
                   onPositionChange={handlePositionChange}
-                  onUrlExpired={handleUrlExpired}
+                  autoPlay={true}
+                  isLocalFile={isLocalFile}
                 />
+
+                {/* Download Controls */}
+                <View className="px-6 py-4 bg-neutral-800 border-t border-neutral-700">
+                  {isDownloading ? (
+                    <View className="items-center">
+                      <View className="w-full mb-2">
+                        <View className="h-2 bg-neutral-700 rounded-full overflow-hidden">
+                          <View
+                            className="h-full bg-green-500"
+                            style={{ width: `${downloadProgress * 100}%` }}
+                          />
+                        </View>
+                      </View>
+                      <Text className="text-sm text-neutral-400">
+                        Downloading... {Math.round(downloadProgress * 100)}%
+                      </Text>
+                    </View>
+                  ) : isDownloaded ? (
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color="#10b981"
+                        />
+                        <Text className="ml-2 text-sm text-neutral-300">
+                          Downloaded • Playing from device
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={handleDeleteDownload}
+                        className="rounded-lg bg-red-600 px-4 py-2 active:opacity-80"
+                      >
+                        <Text className="text-sm font-semibold text-white">
+                          Delete
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={handleDownload}
+                      disabled={!propAudioId}
+                      className="flex-row items-center justify-center rounded-lg bg-green-600 px-6 py-3 active:opacity-80"
+                      style={{
+                        opacity: !propAudioId ? 0.5 : 1,
+                      }}
+                    >
+                      <Ionicons name="download" size={20} color="white" />
+                      <Text className="ml-2 text-base font-semibold text-white">
+                        Download for Offline
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             ) : (
               <View className="flex-1 bg-black">
@@ -519,50 +596,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   {audioError.message}
                 </Text>
 
-                {/* Show different actions based on error type */}
-                <View className="mt-3 flex-row justify-center space-x-2">
-                  {refreshFailed ? (
-                    <>
-                      <Pressable
-                        onPress={() => {
-                          setRefreshFailed(false);
-                          setRefreshAttempts(0);
-                          refreshAudioUrl();
-                        }}
-                        className="flex-1 mr-2 rounded-lg bg-white p-2"
-                      >
-                        <Text
-                          className="text-center font-semibold"
-                          style={{ color: colors.accent.error }}
-                        >
-                          Retry
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => switchMode("video")}
-                        className="flex-1 ml-2 rounded-lg bg-white p-2"
-                      >
-                        <Text
-                          className="text-center font-semibold"
-                          style={{ color: colors.accent.error }}
-                        >
-                          Switch to Video
-                        </Text>
-                      </Pressable>
-                    </>
-                  ) : (
-                    <Pressable
-                      onPress={() => switchMode("video")}
-                      className="rounded-lg bg-white p-2"
+                <View className="mt-3 flex-row justify-center">
+                  <Pressable
+                    onPress={() => switchMode("video")}
+                    className="rounded-lg bg-white px-6 py-2"
+                  >
+                    <Text
+                      className="text-center font-semibold"
+                      style={{ color: colors.accent.error }}
                     >
-                      <Text
-                        className="text-center font-semibold"
-                        style={{ color: colors.accent.error }}
-                      >
-                        Switch to Video
-                      </Text>
-                    </Pressable>
-                  )}
+                      Switch to Video
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             )}

@@ -10,6 +10,7 @@ export interface Naat {
   channelId: string;
   youtubeId: string;
   views: number; // view count for popularity sorting
+  audioId?: string; // Appwrite Storage file ID for audio
   createdAt: string;
   updatedAt: string;
 }
@@ -126,7 +127,7 @@ export interface IAppwriteService {
   ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
   searchNaats(query: string, channelId?: string | null): Promise<Naat[]>;
-  getAudioUrl(youtubeId: string): Promise<AudioUrlResponse>;
+  getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse>;
   getChannels(): Promise<Channel[]>;
 }
 
@@ -192,6 +193,7 @@ export interface AudioUrlResponse {
   quality?: string;
   error?: string;
   code?: string;
+  fromStorage?: boolean; // Indicates if audio is from Appwrite Storage
 }
 
 export enum AudioErrorCode {

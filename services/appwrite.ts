@@ -314,82 +314,33 @@ export class AppwriteService implements IAppwriteService {
   }
 
   /**
-   * Extracts audio stream URL from a YouTube video
-   * @param youtubeId - The YouTube video ID
-   * @returns Promise resolving to AudioUrlResponse with audio URL and metadata
-   * @throws AppError if the extraction fails or function is not configured
+   * Get audio URL from Appwrite Storage
+   * @param audioId - The storage file ID
+   * @returns Audio URL response
+   * @throws AppError if audioId is not provided or invalid
    */
-  async getAudioUrl(youtubeId: string): Promise<AudioUrlResponse> {
-    if (!youtubeId || youtubeId.trim() === "") {
-      throw new AppError(
-        "Invalid YouTube ID provided.",
-        ErrorCode.API_ERROR,
-        false
-      );
-    }
-
-    if (!appwriteConfig.audioExtractionFunctionUrl) {
-      throw new AppError(
-        "Audio extraction function is not configured. Please set EXPO_PUBLIC_AUDIO_EXTRACTION_FUNCTION_URL.",
-        ErrorCode.API_ERROR,
-        false
-      );
+  async getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse> {
+    if (!audioId || audioId.trim() === "") {
+      return {
+        success: false,
+        error: "Audio not available for this naat yet.",
+      };
     }
 
     try {
-      const response = await fetch(appwriteConfig.audioExtractionFunctionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ youtubeId }),
-      });
-
-      if (!response.ok) {
-        throw new AppError(
-          `Function execution failed with status ${response.status}`,
-          ErrorCode.API_ERROR,
-          true
-        );
-      }
-
-      // Parse the direct response from the function
-      const result: AudioUrlResponse = await response.json();
-
-      // Check if the extraction was successful
-      if (!result.success) {
-        const errorCode = result.code as AudioErrorCode;
-        throw new AppError(
-          result.error || "Failed to extract audio URL.",
-          ErrorCode.API_ERROR,
-          errorCode !== AudioErrorCode.YTDLP_NOT_FOUND // Recoverable unless service is unavailable
-        );
-      }
-
-      // Use streaming proxy URL instead of direct YouTube URL to avoid 403 errors
-      const streamingUrl = appwriteConfig.audioStreamingFunctionUrl
-        ? `${appwriteConfig.audioStreamingFunctionUrl}?youtubeId=${youtubeId}`
-        : result.audioUrl; // Fallback to direct URL if streaming not configured
+      // Return the file view URL for streaming
+      const audioUrl = `${appwriteConfig.endpoint}/storage/buckets/audio-files/files/${audioId}/view?project=${appwriteConfig.projectId}`;
 
       return {
-        ...result,
-        audioUrl: streamingUrl,
+        success: true,
+        audioUrl,
+        fromStorage: true,
       };
     } catch (error) {
-      logError(wrapError(error, ErrorCode.API_ERROR), {
-        context: "getAudioUrl",
-        youtubeId,
-      });
-
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        "Unable to extract audio URL. Please try again.",
-        ErrorCode.API_ERROR,
-        true
-      );
+      return {
+        success: false,
+        error: "Failed to load audio from storage.",
+      };
     }
   }
 }
