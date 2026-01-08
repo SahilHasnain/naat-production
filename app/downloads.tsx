@@ -385,7 +385,7 @@ export default function DownloadsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
       <View
         className="flex-1"
         accessible={false}

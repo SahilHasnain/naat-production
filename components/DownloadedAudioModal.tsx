@@ -3,14 +3,8 @@ import { DownloadedAudioModalProps } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  SafeAreaView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, StatusBar, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AudioPlayer from "./AudioPlayer";
 
 const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
@@ -43,67 +37,76 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
+      animationType="fade"
+      transparent={false}
       onRequestClose={onClose}
-      statusBarTranslucent={false}
+      statusBarTranslucent
     >
-      <SafeAreaView className="flex-1 bg-black">
-        {/* Header with Close Button */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-800">
-          <Text className="text-lg font-bold text-white">Now Playing</Text>
-          <Pressable
-            onPress={onClose}
-            className="h-10 w-10 items-center justify-center rounded-full bg-neutral-800"
-            accessibilityRole="button"
-            accessibilityLabel="Close player"
-            accessibilityHint="Double tap to close the audio player"
-          >
-            <Ionicons name="close" size={24} color={colors.text.primary} />
-          </Pressable>
-        </View>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={colors.background.primary}
+      />
 
-        {/* Audio Player or Loading/Error State */}
-        {isLoading && !error ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.accent.primary} />
-            <Text className="mt-4 text-white">Loading audio...</Text>
+      {/* Full Height Modal Container */}
+      <View className="flex-1 bg-black">
+        {/* Modal Content Container */}
+        <View className="flex-1">
+          <View className="flex-1 bg-neutral-900 overflow-hidden">
+            {/* Header without Close Button */}
+            <SafeAreaView className="bg-neutral-800 border-b border-neutral-700">
+              <View className="px-5 py-4">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-white leading-tight">
+                      {audio.title}
+                    </Text>
+                    <Text className="text-sm text-neutral-400 mt-1">
+                      Downloaded Audio
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </SafeAreaView>
+
+            {/* Audio Player or Loading/Error State */}
+            {isLoading && !error ? (
+              <View className="flex-1 items-center justify-center bg-black">
+                <ActivityIndicator size="large" color={colors.accent.primary} />
+                <Text className="mt-3 text-sm text-neutral-400">
+                  Loading audio...
+                </Text>
+              </View>
+            ) : error ? (
+              <View className="flex-1 items-center justify-center px-8 bg-black">
+                <Ionicons
+                  name="alert-circle"
+                  size={64}
+                  color={colors.accent.error}
+                />
+                <Text className="mt-4 text-center text-xl font-bold text-white">
+                  Playback Error
+                </Text>
+                <Text className="mt-2 text-center text-base text-neutral-400">
+                  {error.message ||
+                    "Unable to play this audio file. It may be corrupted or deleted."}
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-1">
+                <AudioPlayer
+                  audioUrl={audio.localUri}
+                  title={audio.title}
+                  channelName="Downloaded Audio"
+                  thumbnailUrl={thumbnailUrl}
+                  onError={handleError}
+                  autoPlay={true}
+                  isLocalFile={true}
+                />
+              </View>
+            )}
           </View>
-        ) : error ? (
-          <View className="flex-1 items-center justify-center px-8">
-            <Ionicons
-              name="alert-circle"
-              size={64}
-              color={colors.accent.error}
-            />
-            <Text className="mt-4 text-center text-xl font-bold text-white">
-              Playback Error
-            </Text>
-            <Text className="mt-2 text-center text-base text-neutral-400">
-              {error.message ||
-                "Unable to play this audio file. It may be corrupted or deleted."}
-            </Text>
-            <Pressable
-              onPress={onClose}
-              className="mt-6 px-6 py-3 rounded-lg bg-neutral-800"
-              accessibilityRole="button"
-              accessibilityLabel="Close error dialog"
-            >
-              <Text className="text-white font-semibold">Close</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <AudioPlayer
-            audioUrl={audio.localUri}
-            title={audio.title}
-            channelName="Downloaded Audio"
-            thumbnailUrl={thumbnailUrl}
-            onError={handleError}
-            autoPlay={true}
-            isLocalFile={true}
-          />
-        )}
-      </SafeAreaView>
+        </View>
+      </View>
     </Modal>
   );
 };

@@ -3,9 +3,12 @@ import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
 export default function RootLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <ErrorBoundary>
       <Tabs
@@ -17,8 +20,8 @@ export default function RootLayout() {
             backgroundColor: colors.background.elevated,
             borderTopColor: colors.background.elevated,
             borderTopWidth: 1,
-            height: 60,
-            paddingBottom: 8,
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom,
             paddingTop: 8,
           },
           tabBarLabelStyle: {

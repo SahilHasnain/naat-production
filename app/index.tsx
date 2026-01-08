@@ -17,7 +17,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   // Modal state
@@ -192,7 +191,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900" edges={["bottom"]}>
+    <View className="flex-1 bg-neutral-900">
       <View className="flex-1">
         {/* Sticky Search Bar */}
         <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
@@ -267,6 +266,6 @@ export default function HomeScreen() {
           audioId={selectedNaat.audioId}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
