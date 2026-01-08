@@ -358,7 +358,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
       />
 
       {/* Full Height Modal Container */}
-      <View className="flex-1 bg-black">
+      <SafeAreaView edges={["bottom"]} className="flex-1 bg-black">
         {/* Modal Content Container */}
         <View className="flex-1">
           <View
@@ -366,7 +366,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
             style={shadows.lg}
           >
             {/* Header */}
-            <SafeAreaView className="bg-neutral-800 border-b border-neutral-700">
+            <SafeAreaView
+              edges={["top"]}
+              className="bg-neutral-800 border-b border-neutral-700"
+            >
               <View className="px-5 py-4">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-1 mr-4">
@@ -613,7 +616,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
             )}
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };

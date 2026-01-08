@@ -48,12 +48,15 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
       />
 
       {/* Full Height Modal Container */}
-      <View className="flex-1 bg-black">
+      <SafeAreaView edges={["bottom"]} className="flex-1 bg-black">
         {/* Modal Content Container */}
         <View className="flex-1">
           <View className="flex-1 bg-neutral-900 overflow-hidden">
             {/* Header without Close Button */}
-            <SafeAreaView className="bg-neutral-800 border-b border-neutral-700">
+            <SafeAreaView
+              edges={["top"]}
+              className="bg-neutral-800 border-b border-neutral-700"
+            >
               <View className="px-5 py-4">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-1">
@@ -106,7 +109,7 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
             )}
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
