@@ -1,35 +1,29 @@
 /**
- * Naat Audio Processing Script - OpenAI V2 (Enhanced - Rhythm Break Removal)
+ * Naat Audio Processing Script - Qubrid V2 (100% FREE)
  *
  * This script uses:
- * - OpenAI Whisper (accurate transcription, ~$0.09 per 15-min)
- * - OpenAI GPT-4o-mini (accurate analysis, ~$0.007/video)
+ * - Qubrid Whisper Large V3 (accurate transcription, FREE)
+ * - Qubrid GPT-OSS-120B (accurate analysis, FREE)
  * - 2-way classification: NAAT / EXPLANATION
  * - Smooth transitions with crossfades
  *
  * Features:
- * - Full OpenAI stack for maximum accuracy
+ * - 100% FREE - No API costs!
  * - Removes rhythm breaks (talking between verses, "SubhanAllah", etc.)
  * - Removes long silences (>2 seconds)
  * - Removes introductions and audience reactions
  * - Pure naat listening experience
  *
- * Cost: ~$0.10 per 15-min video (higher accuracy)
+ * Cost: $0.00 - Completely FREE!
  *
  * Usage:
- *   node scripts/audio-processing/process-naat-audio-openai-v2.js
+ *   node scripts/audio-processing/process-naat-audio-qubrid-v2.js [youtube-url]
  */
 
 const { spawn } = require("child_process");
 const dotenv = require("dotenv");
-const {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-  createReadStream,
-} = require("fs");
+const { existsSync, mkdirSync, writeFileSync } = require("fs");
 const { join } = require("path");
-const OpenAI = require("openai");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
@@ -40,19 +34,17 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 dotenv.config();
 
 // Configuration
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const QUBRID_API_KEY =
+  "k_007d66f15312.uX4Ng7s0_yKFHUepbs5t6NsNkBa4OjaH_unTppgrNFJhpi6H16rakg";
 
 // Directories
 const TEMP_DIR = join(process.cwd(), "temp-audio");
 const OUTPUT_DIR = join(process.cwd(), "temp-audio", "processed");
 
 // Audio processing settings
-const PADDING_SECONDS = 0.3; // Reduced padding for tighter cuts
-const CROSSFADE_DURATION = 0.5; // 0.5s crossfade between segments
-const MAX_SILENCE_DURATION = 2.0; // Remove silences longer than 2 seconds
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const PADDING_SECONDS = 0.3;
+const CROSSFADE_DURATION = 0.5;
+const MAX_SILENCE_DURATION = 2.0;
 
 /**
  * Ensure directories exist
@@ -125,32 +117,85 @@ async function downloadAudio(youtubeId, title) {
 }
 
 /**
- * Transcribe audio with OpenAI Whisper
+ * Transcribe audio with Qubrid Whisper Large V3
  */
 async function transcribeAudio(audioPath) {
-  console.log(`  Transcribing audio with OpenAI Whisper...`);
+  console.log(`  Transcribing audio with Qubrid Whisper Large V3 (FREE)...`);
 
-  try {
-    const transcription = await openai.audio.transcriptions.create({
-      file: createReadStream(audioPath),
-      model: "whisper-1",
-      language: "ur", // Urdu
-      response_format: "verbose_json",
-      timestamp_granularities: ["segment"],
+  return new Promise((resolve, reject) => {
+    const curl = spawn("curl", [
+      "-X",
+      "POST",
+      "https://platform.qubrid.com/api/v1/qubridai/audio/transcribe",
+      "-H",
+      `Authorization: Bearer ${QUBRID_API_KEY}`,
+      "-F",
+      "model=openai/whisper-large-v3",
+      "-F",
+      `file=@${audioPath}`,
+    ]);
+
+    let output = "";
+    let errorOutput = "";
+
+    curl.stdout.on("data", (data) => {
+      output += data.toString();
     });
 
-    console.log(`  ✓ Transcription completed`);
-    return transcription;
-  } catch (error) {
-    throw new Error(`Transcription failed: ${error.message}`);
-  }
+    curl.stderr.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+    curl.on("close", (code) => {
+      if (code !== 0) {
+        reject(
+          new Error(`curl failed with code ${code}: ${errorOutput || output}`)
+        );
+        return;
+      }
+
+      try {
+        const result = JSON.parse(output);
+
+        if (result.status === "error") {
+          reject(new Error(`Qubrid API error: ${result.message}`));
+          return;
+        }
+
+        // Transform Qubrid response to match OpenAI Whisper format
+        const transcription = {
+          text: result.text || "",
+          language: result.language || "unknown",
+          duration: result.duration || 0,
+          segments: result.segments || [],
+        };
+
+        console.log(`  ✓ Transcription completed`);
+        console.log(`  ℹ️  Language: ${transcription.language}`);
+        console.log(`  ℹ️  Duration: ${transcription.duration}s`);
+        console.log(`  ℹ️  Segments: ${transcription.segments.length}`);
+
+        resolve(transcription);
+      } catch (error) {
+        reject(
+          new Error(
+            `Failed to parse response: ${error.message}\nOutput: ${output}`
+          )
+        );
+      }
+    });
+
+    curl.on("error", (err) => {
+      reject(new Error(`Failed to spawn curl: ${err.message}`));
+    });
+  });
 }
 
 /**
- * Analyze transcript with OpenAI GPT-4o-mini (2-WAY CLASSIFICATION)
+ * Analyze transcript with Qubrid GPT-OSS-120B (2-WAY CLASSIFICATION)
  */
 async function analyzeTranscript(transcription) {
-  console.log(`  Analyzing transcript with OpenAI GPT-4o-mini (2-way)...`);
+  console.log(`  Analyzing transcript with Qubrid GPT-OSS-120B (FREE)...`);
 
   const segmentSummary = transcription.segments
     ?.map(
@@ -209,7 +254,8 @@ Respond in JSON format:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
+    const body = {
+      model: "openai/gpt-oss-120b",
       messages: [
         {
           role: "system",
@@ -221,12 +267,57 @@ Respond in JSON format:
           content: prompt,
         },
       ],
-      model: "gpt-4o-mini",
-      temperature: 0.2, // Lower temperature for more consistent classification
-      response_format: { type: "json_object" },
-    });
+      temperature: 0.2,
+      max_tokens: 4096,
+      stream: false,
+      top_p: 1,
+    };
 
-    const analysis = JSON.parse(completion.choices[0].message.content);
+    const res = await fetch(
+      "https://platform.qubrid.com/api/v1/qubridai/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${QUBRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(
+        `Qubrid API error: ${res.status} ${res.statusText} - ${errorText}`
+      );
+    }
+
+    const result = await res.json();
+
+    // Debug: Log the response structure
+    console.log(`  ℹ️  API Response keys: ${Object.keys(result).join(", ")}`);
+
+    // Handle different response formats
+    let content;
+    if (result.choices && result.choices[0]) {
+      // OpenAI-compatible format
+      content = result.choices[0].message.content;
+    } else if (result.message) {
+      // Direct message format
+      content = result.message;
+    } else if (result.content) {
+      // Direct content format
+      content = result.content;
+    } else if (result.response) {
+      // Response field format
+      content = result.response;
+    } else {
+      throw new Error(
+        `Unexpected API response format: ${JSON.stringify(result).substring(0, 200)}`
+      );
+    }
+
+    const analysis = JSON.parse(content);
 
     // Enrich segments with full text from transcription
     if (analysis.segments && transcription.segments) {
@@ -239,15 +330,6 @@ Respond in JSON format:
     console.log(
       `  ✓ Analysis completed: ${analysis.segments?.length || 0} segments identified`
     );
-
-    // Log token usage
-    console.log(
-      `  ℹ️  Tokens used: ${completion.usage.prompt_tokens} input, ${completion.usage.completion_tokens} output`
-    );
-    const estimatedCost =
-      (completion.usage.prompt_tokens * 0.15) / 1000000 +
-      (completion.usage.completion_tokens * 0.6) / 1000000;
-    console.log(`  💰 Estimated cost: $${estimatedCost.toFixed(5)}`);
 
     // Show breakdown
     const naatCount = analysis.segments.filter((s) => s.type === "naat").length;
@@ -278,9 +360,9 @@ Respond in JSON format:
 }
 
 /**
- * Merge consecutive naat segments and add padding
+ * Merge nearby naat segments
  */
-function mergeAndPadSegments(segments, audioDuration) {
+function mergeNaatSegments(segments) {
   const naatSegments = segments.filter((s) => s.type === "naat");
 
   if (naatSegments.length === 0) {
@@ -291,62 +373,45 @@ function mergeAndPadSegments(segments, audioDuration) {
   let current = { ...naatSegments[0] };
 
   for (let i = 1; i < naatSegments.length; i++) {
-    const segment = naatSegments[i];
+    const next = naatSegments[i];
+    const gap = next.start_time - current.end_time;
 
-    // If segments are very close (within 0.5 second), merge them
-    if (segment.start_time - current.end_time <= 0.5) {
-      current.end_time = segment.end_time;
-      current.text += " " + segment.text;
+    if (gap <= MAX_SILENCE_DURATION) {
+      current.end_time = next.end_time;
+      current.text += " " + next.text;
     } else {
       merged.push(current);
-      current = { ...segment };
+      current = { ...next };
     }
   }
 
   merged.push(current);
-
-  // Add minimal padding
-  const padded = merged.map((seg) => ({
-    ...seg,
-    original_start: seg.start_time,
-    original_end: seg.end_time,
-    start_time: Math.max(0, seg.start_time - PADDING_SECONDS),
-    end_time: Math.min(audioDuration, seg.end_time + PADDING_SECONDS),
-  }));
 
   console.log(
     `  ✓ Merged ${naatSegments.length} naat segments into ${merged.length} blocks`
   );
   console.log(`  ✓ Added ${PADDING_SECONDS}s padding to each block`);
 
-  return padded;
+  return merged.map((seg) => ({
+    ...seg,
+    start_time: Math.max(0, seg.start_time - PADDING_SECONDS),
+    end_time: seg.end_time + PADDING_SECONDS,
+  }));
 }
 
 /**
- * Cut audio with smooth crossfades
+ * Cut audio to remove interruptions
  */
-async function cutAudioWithCrossfade(
-  inputPath,
-  segments,
-  youtubeId,
-  audioDuration
-) {
+async function cutAudio(inputPath, outputPath, mergedSegments) {
   console.log(`  Cutting audio to remove interruptions...`);
-
-  const mergedSegments = mergeAndPadSegments(segments, audioDuration);
-
-  if (mergedSegments.length === 0) {
-    console.log(`  ⚠️  No naat segments identified, keeping original`);
-    return null;
-  }
-
+  console.log(
+    `  ✓ Merged ${mergedSegments.length} naat segments into ${mergedSegments.length} blocks`
+  );
+  console.log(`  ✓ Added ${PADDING_SECONDS}s padding to each block`);
   console.log(
     `  Processing ${mergedSegments.length} pure naat segments with crossfades...`
   );
 
-  const outputPath = join(OUTPUT_DIR, `${youtubeId}_openai_processed.m4a`);
-
-  // If only one segment, no crossfade needed
   if (mergedSegments.length === 1) {
     const seg = mergedSegments[0];
     return new Promise((resolve, reject) => {
@@ -370,12 +435,10 @@ async function cutAudioWithCrossfade(
     });
   }
 
-  // Multiple segments - use crossfade
   return new Promise((resolve, reject) => {
     const filterComplex = [];
     const inputs = [];
 
-    // Extract each segment
     mergedSegments.forEach((segment, index) => {
       filterComplex.push(
         `[0:a]atrim=start=${segment.start_time}:end=${segment.end_time},asetpts=PTS-STARTPTS[a${index}]`
@@ -383,7 +446,6 @@ async function cutAudioWithCrossfade(
       inputs.push(`a${index}`);
     });
 
-    // Concatenate all segments (simpler and more reliable than crossfade chain)
     const inputLabels = inputs.map((label) => `[${label}]`).join("");
     filterComplex.push(
       `${inputLabels}concat=n=${mergedSegments.length}:v=0:a=1[out]`
@@ -443,20 +505,20 @@ function generateReport(
       language: transcription.language,
       duration: transcription.duration,
       text: transcription.text,
-      provider: "OpenAI Whisper",
+      provider: "Qubrid Whisper Large V3",
     },
     analysis: {
       ...analysis,
       merged_segments_count: mergedCount,
-      provider: "OpenAI GPT-4o-mini",
+      provider: "Qubrid GPT-OSS-120B",
     },
     processing: {
-      version: "OpenAI V2 - Enhanced (Rhythm Break Removal)",
+      version: "Qubrid V2 - 100% FREE (Rhythm Break Removal)",
       padding_seconds: PADDING_SECONDS,
       crossfade_duration: CROSSFADE_DURATION,
       max_silence_duration: MAX_SILENCE_DURATION,
       approach:
-        "Full OpenAI Stack (Whisper + GPT-4o-mini 2-way Classification)",
+        "Qubrid Whisper Large V3 + Qubrid GPT-OSS-120B (2-way Classification)",
     },
     output: {
       processed_audio: processedPath,
@@ -465,21 +527,16 @@ function generateReport(
     timestamp: new Date().toISOString(),
   };
 
-  const reportPath = join(OUTPUT_DIR, `${naat.youtubeId}_openai_report.json`);
-  writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-  const readablePath = join(OUTPUT_DIR, `${naat.youtubeId}_openai_report.txt`);
+  const reportPath = join(OUTPUT_DIR, `${naat.youtubeId}_qubrid_report.json`);
+  const readablePath = join(OUTPUT_DIR, `${naat.youtubeId}_qubrid_report.txt`);
   const naatSegments = analysis.segments.filter((s) => s.type === "naat");
-  const transitionSegments = analysis.segments.filter(
-    (s) => s.type === "transition"
-  );
   const explanationSegments = analysis.segments.filter(
     (s) => s.type === "explanation"
   );
 
   const readable = `
-NAAT AUDIO PROCESSING REPORT - OpenAI V2 (Enhanced)
-====================================================
+NAAT AUDIO PROCESSING REPORT - Qubrid V2 (100% FREE)
+======================================================
 
 Video: ${naat.title}
 YouTube: https://www.youtube.com/watch?v=${naat.youtubeId}
@@ -487,9 +544,9 @@ Processed: ${new Date().toLocaleString()}
 
 PROCESSING APPROACH
 -------------------
-Transcription: OpenAI Whisper (highest accuracy)
-Analysis: OpenAI GPT-4o-mini (2-way classification)
-Strategy: Full OpenAI stack for maximum accuracy
+Transcription: Qubrid Whisper Large V3 (FREE)
+Analysis: Qubrid GPT-OSS-120B (FREE, 2-way classification)
+Strategy: 100% FREE - Full Qubrid stack
 
 TRANSCRIPTION
 -------------
@@ -500,11 +557,10 @@ ANALYSIS SUMMARY
 ----------------
 Total segments: ${analysis.segments?.length || 0}
 ├─ NAAT (kept): ${naatSegments.length} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)
-├─ TRANSITION (removed): ${transitionSegments.length} segments (${analysis.transition_percentage?.toFixed(1) || 0}%)
 └─ EXPLANATION (removed): ${explanationSegments.length} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)
 
 Merged into: ${mergedCount} continuous naat blocks
-Removed: ${transitionSegments.length + explanationSegments.length} interruption segments
+Removed: ${explanationSegments.length} interruption segments
 
 PROCESSING SETTINGS
 -------------------
@@ -514,20 +570,6 @@ Max silence: ${MAX_SILENCE_DURATION}s (longer silences removed)
 
 WHAT WAS REMOVED
 ----------------
-${
-  transitionSegments.length > 0
-    ? `Transitions (${transitionSegments.length}):
-${transitionSegments
-  .slice(0, 5)
-  .map(
-    (s, i) =>
-      `  ${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
-  )
-  .join("\n")}
-${transitionSegments.length > 5 ? `  ... and ${transitionSegments.length - 5} more` : ""}
-`
-    : "No transitions detected"
-}
 ${
   explanationSegments.length > 0
     ? `Explanations (${explanationSegments.length}):
@@ -552,48 +594,17 @@ ${naatSegments
       `${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
   )
   .join("\n")}
-${naatSegments.length > 10 ? `... and ${naatSegments.length - 10} more naat segments` : ""}
+${naatSegments.length > 10 ? `... and ${naatSegments.length - 10} more` : ""}
 
-SUMMARY
--------
-${analysis.summary}
-
-FILES
------
-Original: ${join(TEMP_DIR, `${naat.youtubeId}.m4a`)}
-Processed: ${processedPath || "N/A"}
-
-COMPARISON WITH HYBRID VERSION
--------------------------------
-OpenAI Version:
-✓ Higher transcription accuracy (OpenAI Whisper)
-✓ Better Urdu language understanding
-✓ More precise timestamp detection
-✓ Cost: ~$0.10 per 15-min video
-
-Hybrid Version (Groq + OpenAI):
-✓ FREE transcription (Groq Whisper)
-✓ Same analysis quality (OpenAI GPT-4o-mini)
-✓ Cost: ~$0.007 per 15-min video
-✓ 14x cheaper
-
-FEATURES
---------
-✓ Removes rhythm breaks (talking between verses)
-✓ Removes "SubhanAllah", "MashaAllah" interruptions
-✓ Removes introductions and audience reactions
-✓ Removes long silences (>2s)
-✓ Tighter cuts with minimal padding (0.3s)
-✓ Pure naat listening experience
-
-NEXT STEPS
-----------
-1. Compare with hybrid version output
-2. Listen to both processed audios
-3. Determine if OpenAI's higher accuracy justifies the cost
-4. Rate: OpenAI Better / Same / Hybrid Better
+OUTPUT FILES
+------------
+Processed Audio: ${processedPath}
+Original Audio: ${join(TEMP_DIR, `${naat.youtubeId}.m4a`)}
+JSON Report: ${reportPath}
+Text Report: ${readablePath}
 `;
 
+  writeFileSync(reportPath, JSON.stringify(report, null, 2));
   writeFileSync(readablePath, readable);
 
   console.log(`\n✓ Reports generated:`);
@@ -605,23 +616,20 @@ NEXT STEPS
  * Main function
  */
 async function main() {
-  console.log("🎵 Naat Audio Processing Script - OpenAI V2 (Enhanced)\n");
-  console.log("📊 Using: OpenAI Whisper + OpenAI GPT-4o-mini (~$0.10)\n");
-  console.log("✨ Full OpenAI stack for maximum accuracy\n");
+  console.log("🎵 Naat Audio Processing Script - Qubrid V2 (100% FREE)\n");
+  console.log("📊 Using: Qubrid Whisper Large V3 + Qubrid GPT-OSS-120B\n");
+  console.log("✨ Completely FREE - No API costs!\n");
 
   ensureDirectories();
 
-  // Parse command line arguments
   const args = process.argv.slice(2);
   let videoUrl = args[0];
 
-  // If no argument provided, use default test video
   if (!videoUrl) {
     videoUrl = "https://youtu.be/mgONEN7IqE8?si=mkWINU0McOItCV7p";
     console.log("⚠️  No video URL provided, using default test video\n");
   }
 
-  // Extract video ID from URL
   const videoIdMatch = videoUrl.match(
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   );
@@ -650,25 +658,29 @@ async function main() {
     console.log("📥 Step 1: Downloading audio...");
     const audioPath = await downloadAudio(naat.youtubeId, naat.title);
 
-    console.log("\n🎤 Step 2: Transcribing audio with OpenAI Whisper...");
+    console.log(
+      "\n🎤 Step 2: Transcribing audio with Qubrid Whisper Large V3 (FREE)..."
+    );
     const transcription = await transcribeAudio(audioPath);
 
     console.log("\n🧠 Step 3: Analyzing transcript (2-way classification)...");
     const analysis = await analyzeTranscript(transcription);
 
     console.log("\n✂️  Step 4: Processing audio (removing interruptions)...");
-    const mergedSegments = mergeAndPadSegments(
-      analysis.segments,
-      transcription.duration
-    );
-    const processedPath = await cutAudioWithCrossfade(
-      audioPath,
-      analysis.segments,
-      naat.youtubeId,
-      transcription.duration
-    );
+    const mergedSegments = mergeNaatSegments(analysis.segments);
 
-    console.log("\n📊 Step 5: Generating report...");
+    if (mergedSegments.length === 0) {
+      console.log("❌ No naat segments found. Skipping audio processing.");
+      return;
+    }
+
+    const processedPath = join(
+      OUTPUT_DIR,
+      `${naat.youtubeId}_qubrid_processed.m4a`
+    );
+    await cutAudio(audioPath, processedPath, mergedSegments);
+
+    console.log("\n📊 Step 5: Generating reports...");
     generateReport(
       naat,
       transcription,
@@ -677,25 +689,17 @@ async function main() {
       mergedSegments.length
     );
 
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ PROCESSING COMPLETE!");
-    console.log("=".repeat(60));
-    console.log(`\nCheck the reports in: ${OUTPUT_DIR}`);
-    console.log(`\nOriginal audio: ${audioPath}`);
-    if (processedPath) {
-      console.log(`Processed audio (OpenAI): ${processedPath}`);
-    }
-    console.log(
-      `\n💡 Compare with hybrid version to see if higher accuracy is worth the cost!`
-    );
+    console.log("\n✅ Processing complete!");
+    console.log(`\n📁 Output files:`);
+    console.log(`   Audio: ${processedPath}`);
+    console.log(`   Reports: ${OUTPUT_DIR}`);
   } catch (error) {
     console.error("\n❌ Error:", error.message);
     process.exit(1);
   }
 }
 
-// Run
 main().catch((error) => {
-  console.error("\n❌ Fatal error:", error);
+  console.error("❌ Fatal error:", error);
   process.exit(1);
 });

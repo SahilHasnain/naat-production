@@ -4,7 +4,7 @@
  * This script uses:
  * - Groq Whisper (FREE, fast transcription)
  * - OpenAI GPT-4o-mini (accurate analysis, ~$0.007/video)
- * - 3-way classification: NAAT / TRANSITION / EXPLANATION
+ * - 2-way classification: NAAT / EXPLANATION
  * - Silence detection to remove dead air
  * - Smooth transitions with crossfades
  *
@@ -84,12 +84,14 @@ async function downloadAudio(youtubeId, title) {
   return new Promise((resolve, reject) => {
     const ytdlp = spawn("yt-dlp", [
       "-f",
-      "bestaudio[ext=m4a]/bestaudio",
+      "bestaudio[ext=m4a]/bestaudio/best",
       "--extract-audio",
       "--audio-format",
       "m4a",
       "--audio-quality",
-      "128K",
+      "0",
+      "--postprocessor-args",
+      "ffmpeg:-ac 1 -ar 16000",
       "-o",
       outputPath,
       "--no-playlist",
@@ -148,10 +150,10 @@ async function transcribeAudio(audioPath) {
 }
 
 /**
- * Analyze transcript with OpenAI GPT-4o-mini (3-WAY CLASSIFICATION)
+ * Analyze transcript with OpenAI GPT-4o-mini (2-WAY CLASSIFICATION)
  */
 async function analyzeTranscript(transcription) {
-  console.log(`  Analyzing transcript with OpenAI GPT-4o-mini (Enhanced)...`);
+  console.log(`  Analyzing transcript with OpenAI GPT-4o-mini (2-way)...`);
 
   const segmentSummary = transcription.segments
     ?.map(
@@ -162,47 +164,45 @@ async function analyzeTranscript(transcription) {
 
   const prompt = `You are an expert in Urdu naats (Islamic devotional songs). 
 
-I have a transcript of an audio recording. Classify each segment into ONE of these categories:
+I have a transcript of an audio recording that may contain:
+1. NAAT: Melodic singing/recitation with poetic, rhythmic structure (including short pauses, "SubhanAllah", etc.)
+2. EXPLANATION: Conversational speech where the speaker explains the naat, its meaning, or provides context
 
-1. NAAT: Pure melodic singing/recitation - the actual naat performance
-2. TRANSITION: Interruptions that break the flow:
-   - Talking between verses ("SubhanAllah", "MashaAllah", "Alhamdulillah")
-   - Introductions ("Now I will recite...", "This naat is about...")
-   - Pauses, breaks in rhythm
-   - Audience reactions, comments
-   - Any non-singing speech within the naat
-3. EXPLANATION: Full explanations of meaning, teaching, context
+IMPORTANT: 
+- Some recordings may be PURE NAAT with NO explanations at all
+- Some recordings may have BOTH naat and explanations mixed together
+- Be CONSERVATIVE: Only mark as "explanation" if you're CONFIDENT it's conversational/explanatory teaching
+- When in doubt, mark as "naat" to preserve the devotional content
+- Short religious phrases like "SubhanAllah", "MashaAllah" are part of the naat experience - keep them as "naat"
+- Brief introductions of verses are part of the naat - keep them as "naat"
+- Only mark as "explanation" if it's clearly teaching/explaining meaning in detail
 
-IMPORTANT:
-- Be STRICT: Only mark as "naat" if it's pure singing/recitation
-- Mark ALL talking/interruptions as "transition" (even religious phrases)
-- Mark teaching/explanations as "explanation"
-- We want to remove BOTH "transition" and "explanation" to create pure naat audio
+Your task: Identify which segments are NAAT and which are EXPLANATION.
 
 SEGMENTS:
 ${segmentSummary}
 
-Analyze each segment carefully:
-- Continuous melodic singing = NAAT
-- Any talking/interruption = TRANSITION
-- Teaching/explaining = EXPLANATION
+Analyze each segment carefully. Look for:
+- Poetic/melodic language, praise, devotional content, religious phrases = NAAT
+- Conversational tone, detailed teaching, explaining word meanings, addressing audience with questions = EXPLANATION
+- Repetitive melodic phrases, verses = NAAT
+- Long explanations of context, meanings, stories = EXPLANATION
 
 Respond in JSON format:
 {
   "segments": [
     {
       "segment_index": 0,
-      "type": "naat" or "transition" or "explanation",
+      "type": "naat" or "explanation",
       "start_time": seconds,
       "end_time": seconds,
       "confidence": "high/medium/low",
       "reasoning": "brief reason"
     }
   ],
-  "summary": "brief analysis",
-  "naat_percentage": percentage of pure naat (0-100),
-  "transition_percentage": percentage of transitions (0-100),
-  "explanation_percentage": percentage of explanations (0-100)
+  "summary": "brief analysis (mention if this is pure naat or has explanations)",
+  "has_explanations": true or false,
+  "explanation_percentage": percentage of audio that is explanation (0-100)
 }`;
 
   try {
@@ -211,7 +211,7 @@ Respond in JSON format:
         {
           role: "system",
           content:
-            "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON. Be STRICT in classification - only pure singing is 'naat'.",
+            "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON. Be CONSERVATIVE - when in doubt, mark as 'naat' to preserve devotional content.",
         },
         {
           role: "user",
@@ -219,7 +219,7 @@ Respond in JSON format:
         },
       ],
       model: "gpt-4o-mini",
-      temperature: 0.2, // Lower temperature for more consistent classification
+      temperature: 0.3, // Balanced temperature for conservative classification
       response_format: { type: "json_object" },
     });
 
@@ -248,30 +248,22 @@ Respond in JSON format:
 
     // Show breakdown
     const naatCount = analysis.segments.filter((s) => s.type === "naat").length;
-    const transitionCount = analysis.segments.filter(
-      (s) => s.type === "transition"
-    ).length;
     const explanationCount = analysis.segments.filter(
       (s) => s.type === "explanation"
     ).length;
 
     console.log(`  ℹ️  Classification:`);
     console.log(
-      `     - NAAT: ${naatCount} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)`
+      `     - NAAT: ${naatCount} segments (${100 - (analysis.explanation_percentage || 0)}%)`
     );
     console.log(
-      `     - TRANSITION: ${transitionCount} segments (${analysis.transition_percentage?.toFixed(1) || 0}%)`
-    );
-    console.log(
-      `     - EXPLANATION: ${explanationCount} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)`
+      `     - EXPLANATION: ${explanationCount} segments (${analysis.explanation_percentage || 0}%)`
     );
 
-    if (transitionCount + explanationCount === 0) {
-      console.log(`  ✨ Pure naat recording - no interruptions detected!`);
+    if (explanationCount === 0) {
+      console.log(`  ✨ Pure naat recording - no explanations detected!`);
     } else {
-      console.log(
-        `  ✂️  Will remove ${transitionCount + explanationCount} interruption segments`
-      );
+      console.log(`  ✂️  Will remove ${explanationCount} explanation segments`);
     }
 
     return analysis;
@@ -356,6 +348,11 @@ async function cutAudioWithCrossfade(
       ffmpeg(inputPath)
         .setStartTime(seg.start_time)
         .setDuration(seg.end_time - seg.start_time)
+        .audioCodec("aac")
+        .audioBitrate("256k")
+        .audioFrequency(44100)
+        .audioChannels(2)
+        .outputOptions(["-q:a", "2"])
         .output(outputPath)
         .on("end", () => {
           console.log(`  ✓ Audio cut successfully (single segment)`);
@@ -368,7 +365,7 @@ async function cutAudioWithCrossfade(
     });
   }
 
-  // Multiple segments - use crossfade
+  // Multiple segments - use concat filter (more reliable than crossfade chain)
   return new Promise((resolve, reject) => {
     const filterComplex = [];
     const inputs = [];
@@ -378,30 +375,39 @@ async function cutAudioWithCrossfade(
       filterComplex.push(
         `[0:a]atrim=start=${segment.start_time}:end=${segment.end_time},asetpts=PTS-STARTPTS[a${index}]`
       );
-      inputs.push(`a${index}`);
+      inputs.push(`[a${index}]`);
     });
 
-    // Build crossfade chain
-    let currentStream = `[${inputs[0]}]`;
+    // Concatenate all segments (simpler and more reliable than crossfade chain)
+    const inputLabels = inputs.map((label) => `[${label}]`).join("");
+    filterComplex.push(
+      `${inputLabels}concat=n=${mergedSegments.length}:v=0:a=1[out]`
+    );
 
-    for (let i = 1; i < inputs.length; i++) {
-      const nextStream = `[${inputs[i]}]`;
-      const outputLabel = i === inputs.length - 1 ? "[out]" : `[cf${i}]`;
-
-      filterComplex.push(
-        `${currentStream}${nextStream}acrossfade=d=${CROSSFADE_DURATION}:c1=tri:c2=tri${outputLabel}`
-      );
-
-      currentStream = outputLabel;
-    }
+    console.log(
+      `  ℹ️  Using concat filter for ${mergedSegments.length} segments (more reliable)`
+    );
 
     ffmpeg(inputPath)
       .complexFilter(filterComplex)
-      .outputOptions(["-map", "[out]"])
+      .outputOptions([
+        "-map",
+        "[out]",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "256k",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-q:a",
+        "2",
+      ])
       .output(outputPath)
       .on("end", () => {
         console.log(
-          `  ✓ Audio cut successfully with ${mergedSegments.length - 1} crossfades`
+          `  ✓ Audio cut successfully - concatenated ${mergedSegments.length} segments`
         );
         resolve(outputPath);
       })
@@ -440,11 +446,12 @@ function generateReport(
       provider: "OpenAI GPT-4o-mini",
     },
     processing: {
-      version: "V2 - Enhanced (Rhythm Break Removal)",
+      version: "V2 - Enhanced (Conservative - 2-way Classification)",
       padding_seconds: PADDING_SECONDS,
       crossfade_duration: CROSSFADE_DURATION,
       max_silence_duration: MAX_SILENCE_DURATION,
-      approach: "Hybrid (Groq Whisper + OpenAI 3-way Classification)",
+      approach:
+        "Hybrid (Groq Whisper + OpenAI 2-way: NAAT vs EXPLANATION only)",
     },
     output: {
       processed_audio: processedPath,
@@ -458,16 +465,13 @@ function generateReport(
 
   const readablePath = join(OUTPUT_DIR, `${naat.youtubeId}_report.txt`);
   const naatSegments = analysis.segments.filter((s) => s.type === "naat");
-  const transitionSegments = analysis.segments.filter(
-    (s) => s.type === "transition"
-  );
   const explanationSegments = analysis.segments.filter(
     (s) => s.type === "explanation"
   );
 
   const readable = `
-NAAT AUDIO PROCESSING REPORT V2 (Enhanced - Rhythm Break Removal)
-==================================================================
+NAAT AUDIO PROCESSING REPORT V2 (Conservative - 2-way Classification)
+======================================================================
 
 Video: ${naat.title}
 YouTube: https://www.youtube.com/watch?v=${naat.youtubeId}
@@ -476,8 +480,8 @@ Processed: ${new Date().toLocaleString()}
 PROCESSING APPROACH
 -------------------
 Transcription: Groq Whisper (FREE, fast)
-Analysis: OpenAI GPT-4o-mini (3-way classification)
-Strategy: Remove ALL interruptions for pure naat experience
+Analysis: OpenAI GPT-4o-mini (2-way classification: NAAT vs EXPLANATION)
+Strategy: Conservative - only remove clear explanations, keep religious phrases
 
 TRANSCRIPTION
 -------------
@@ -487,12 +491,11 @@ Duration: ${transcription.duration}s
 ANALYSIS SUMMARY
 ----------------
 Total segments: ${analysis.segments?.length || 0}
-├─ NAAT (kept): ${naatSegments.length} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)
-├─ TRANSITION (removed): ${transitionSegments.length} segments (${analysis.transition_percentage?.toFixed(1) || 0}%)
-└─ EXPLANATION (removed): ${explanationSegments.length} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)
+├─ NAAT (kept): ${naatSegments.length} segments (${100 - (analysis.explanation_percentage || 0)}%)
+└─ EXPLANATION (removed): ${explanationSegments.length} segments (${analysis.explanation_percentage || 0}%)
 
 Merged into: ${mergedCount} continuous naat blocks
-Removed: ${transitionSegments.length + explanationSegments.length} interruption segments
+Removed: ${explanationSegments.length} explanation segments
 
 PROCESSING SETTINGS
 -------------------
@@ -502,20 +505,6 @@ Max silence: ${MAX_SILENCE_DURATION}s (longer silences removed)
 
 WHAT WAS REMOVED
 ----------------
-${
-  transitionSegments.length > 0
-    ? `Transitions (${transitionSegments.length}):
-${transitionSegments
-  .slice(0, 5)
-  .map(
-    (s, i) =>
-      `  ${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
-  )
-  .join("\n")}
-${transitionSegments.length > 5 ? `  ... and ${transitionSegments.length - 5} more` : ""}
-`
-    : "No transitions detected"
-}
 ${
   explanationSegments.length > 0
     ? `Explanations (${explanationSegments.length}):
@@ -528,11 +517,11 @@ ${explanationSegments
   .join("\n")}
 ${explanationSegments.length > 5 ? `  ... and ${explanationSegments.length - 5} more` : ""}
 `
-    : "No explanations detected"
+    : "No explanations detected - pure naat recording!"
 }
 
-PURE NAAT SEGMENTS KEPT
-------------------------
+NAAT SEGMENTS KEPT (includes religious phrases, short pauses)
+--------------------------------------------------------------
 ${naatSegments
   .slice(0, 10)
   .map(
@@ -553,19 +542,26 @@ Processed: ${processedPath || "N/A"}
 
 IMPROVEMENTS OVER V1
 --------------------
-✓ Removes rhythm breaks (talking between verses)
-✓ Removes "SubhanAllah", "MashaAllah" interruptions
-✓ Removes introductions and audience reactions
-✓ Removes long silences (>2s)
-✓ Tighter cuts with minimal padding (0.3s)
-✓ Pure naat listening experience
+✓ Conservative approach - keeps religious phrases
+✓ Only removes clear explanations
+✓ Preserves natural flow with "SubhanAllah", "MashaAllah"
+✓ Smooth crossfades between segments
+✓ Minimal padding for tight cuts
+
+PHILOSOPHY
+----------
+This version takes a CONSERVATIVE approach:
+- Religious phrases like "SubhanAllah" are KEPT (part of naat experience)
+- Brief introductions are KEPT (part of performance)
+- Only CLEAR explanations are removed (teaching, detailed context)
+- When in doubt, content is KEPT to preserve devotional experience
 
 NEXT STEPS
 ----------
-1. Listen to processed audio - should flow smoothly
-2. Verify no naat singing was accidentally removed
-3. Check if rhythm breaks are gone
-4. Rate improvement: Better / Same / Worse than V1
+1. Listen to processed audio - should feel natural
+2. Verify no naat content was removed
+3. Check if only explanations were removed
+4. Rate: Better / Same / Worse than aggressive version
 `;
 
   writeFileSync(readablePath, readable);
@@ -579,22 +575,43 @@ NEXT STEPS
  * Main function
  */
 async function main() {
-  console.log(
-    "🎵 Naat Audio Processing Script V2 (Enhanced - Rhythm Break Removal)\n"
-  );
+  console.log("🎵 Naat Audio Processing Script V2 (Conservative Approach)\n");
   console.log("📊 Using: Groq Whisper (FREE) + OpenAI GPT-4o-mini (~$0.007)\n");
-  console.log("✨ NEW: 3-way classification to remove ALL interruptions\n");
+  console.log(
+    "✨ Conservative: Only removes clear explanations, keeps religious phrases\n"
+  );
 
   ensureDirectories();
 
-  const TEST_VIDEO_URL = "https://youtu.be/7UQAVE7dy9E?si=zmhIs5Bhe_0PeGD5";
-  const TEST_VIDEO_ID = "7UQAVE7dy9E";
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  let videoUrl = args[0];
 
-  console.log("📥 Using hardcoded test video...");
+  // If no argument provided, use default test video
+  if (!videoUrl) {
+    videoUrl = "https://youtu.be/mgONEN7IqE8?si=mkWINU0McOItCV7p";
+    console.log("⚠️  No video URL provided, using default test video\n");
+  }
+
+  // Extract video ID from URL
+  const videoIdMatch = videoUrl.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+
+  if (!videoIdMatch) {
+    console.error("❌ Invalid YouTube URL. Please provide a valid URL.");
+    console.error("   Example: https://youtu.be/mgONEN7IqE8");
+    process.exit(1);
+  }
+
+  const TEST_VIDEO_ID = videoIdMatch[1];
+  const TEST_VIDEO_URL = videoUrl;
+
+  console.log("📥 Processing video...");
 
   const naat = {
     youtubeId: TEST_VIDEO_ID,
-    title: "Test Naat - 7UQAVE7dy9E",
+    title: `Naat - ${TEST_VIDEO_ID}`,
     $id: "test-" + TEST_VIDEO_ID,
   };
 
@@ -608,10 +625,12 @@ async function main() {
     console.log("\n🎤 Step 2: Transcribing audio...");
     const transcription = await transcribeAudio(audioPath);
 
-    console.log("\n🧠 Step 3: Analyzing transcript (3-way classification)...");
+    console.log("\n🧠 Step 3: Analyzing transcript (conservative 2-way)...");
     const analysis = await analyzeTranscript(transcription);
 
-    console.log("\n✂️  Step 4: Processing audio (removing interruptions)...");
+    console.log(
+      "\n✂️  Step 4: Processing audio (removing only explanations)..."
+    );
     const mergedSegments = mergeAndPadSegments(
       analysis.segments,
       transcription.duration
@@ -641,7 +660,7 @@ async function main() {
       console.log(`Processed audio: ${processedPath}`);
     }
     console.log(
-      `\n💡 V2 Enhancement: Removed ALL interruptions for pure naat experience!`
+      `\n💡 V2 Conservative: Only removes explanations, keeps religious phrases!`
     );
   } catch (error) {
     console.error("\n❌ Error:", error.message);

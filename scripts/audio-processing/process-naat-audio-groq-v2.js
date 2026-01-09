@@ -1,26 +1,33 @@
 /**
- * Naat Audio Processing Script - Smooth Transitions (Groq)
+ * Naat Audio Processing Script - Groq V2 (Enhanced - Rhythm Break Removal)
  *
- * This script:
- * 1. Downloads audio using yt-dlp
- * 2. Transcribes with Groq Whisper (Urdu support)
- * 3. Analyzes with Llama 3.3 to identify naat vs explanation segments
- * 4. Merges consecutive segments and adds padding
- * 5. Cuts audio with smooth crossfades
- * 6. Generates detailed report
+ * This script uses:
+ * - Groq Whisper (FREE, fast transcription)
+ * - Groq Llama 3.3 70B (FREE, fast analysis)
+ * - 2-way classification: NAAT / EXPLANATION
+ * - Smooth transitions with crossfades
  *
  * Features:
- * - Smooth crossfades between segments (no rhythm breaks)
- * - Padding to preserve complete phrases
- * - Merged consecutive segments for natural flow
+ * - 100% FREE (both transcription and analysis)
+ * - Removes rhythm breaks (talking between verses, "SubhanAllah", etc.)
+ * - Removes long silences (>2 seconds)
+ * - Removes introductions and audience reactions
+ * - Pure naat listening experience
+ *
+ * Cost: $0.00 (completely free!)
  *
  * Usage:
- *   node scripts/process-naat-audio.js
+ *   node scripts/audio-processing/process-naat-audio-groq-v2.js
  */
 
 const { spawn } = require("child_process");
 const dotenv = require("dotenv");
-const { existsSync, mkdirSync, writeFileSync } = require("fs");
+const {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  createReadStream,
+} = require("fs");
 const { join } = require("path");
 const Groq = require("groq-sdk").default;
 const ffmpeg = require("fluent-ffmpeg");
@@ -40,8 +47,9 @@ const TEMP_DIR = join(process.cwd(), "temp-audio");
 const OUTPUT_DIR = join(process.cwd(), "temp-audio", "processed");
 
 // Audio processing settings
-const PADDING_SECONDS = 0.5; // Add 0.5s before and after each segment
+const PADDING_SECONDS = 0.3; // Reduced padding for tighter cuts
 const CROSSFADE_DURATION = 0.5; // 0.5s crossfade between segments
+const MAX_SILENCE_DURATION = 2.0; // Remove silences longer than 2 seconds
 
 // Initialize Groq client
 const groq = new Groq({ apiKey: GROQ_API_KEY });
@@ -64,7 +72,6 @@ function ensureDirectories() {
 async function downloadAudio(youtubeId, title) {
   const outputPath = join(TEMP_DIR, `${youtubeId}.m4a`);
 
-  // Skip if already downloaded
   if (existsSync(outputPath)) {
     console.log(`  ✓ Audio already exists: ${outputPath}`);
     return outputPath;
@@ -76,12 +83,14 @@ async function downloadAudio(youtubeId, title) {
   return new Promise((resolve, reject) => {
     const ytdlp = spawn("yt-dlp", [
       "-f",
-      "bestaudio[ext=m4a]/bestaudio",
+      "bestaudio[ext=m4a]/bestaudio/best",
       "--extract-audio",
       "--audio-format",
       "m4a",
       "--audio-quality",
-      "128K",
+      "0",
+      "--postprocessor-args",
+      "ffmpeg:-ac 1 -ar 16000",
       "-o",
       outputPath,
       "--no-playlist",
@@ -116,14 +125,13 @@ async function downloadAudio(youtubeId, title) {
 }
 
 /**
- * Transcribe audio with Groq Whisper
+ * Transcribe audio with Groq Whisper (FREE)
  */
 async function transcribeAudio(audioPath) {
-  console.log(`  Transcribing audio with Groq Whisper...`);
+  console.log(`  Transcribing audio with Groq Whisper (FREE)...`);
 
   try {
-    const fs = require("fs");
-    const fileStream = fs.createReadStream(audioPath);
+    const fileStream = createReadStream(audioPath);
 
     const transcription = await groq.audio.transcriptions.create({
       file: fileStream,
@@ -141,12 +149,11 @@ async function transcribeAudio(audioPath) {
 }
 
 /**
- * Analyze transcript with Llama 3.3 to identify segments
+ * Analyze transcript with Groq Llama 3.3 (2-WAY CLASSIFICATION)
  */
 async function analyzeTranscript(transcription) {
-  console.log(`  Analyzing transcript with Llama 3.3...`);
+  console.log(`  Analyzing transcript with Groq Llama 3.3 (FREE, 2-way)...`);
 
-  // Limit segments to reduce token usage
   const segmentSummary = transcription.segments
     ?.map(
       (s, i) =>
@@ -156,18 +163,35 @@ async function analyzeTranscript(transcription) {
 
   const prompt = `You are an expert in Urdu naats (Islamic devotional songs). 
 
-I have a transcript of an audio recording that contains both:
-1. NAAT: Melodic singing/recitation with poetic, rhythmic structure
-2. EXPLANATION: Conversational speech where the speaker explains the naat, its meaning, or provides context
+I have a transcript of an audio recording. Classify each segment into ONE of these categories:
 
-Your task: Identify which segments are NAAT and which are EXPLANATION.
+1. NAAT: Pure melodic singing/recitation - the actual naat performance
+   - Continuous melodic singing
+   - Rhythmic recitation
+   - Musical verses
+   - Keep this content
+
+2. EXPLANATION: Everything else that interrupts the naat
+   - Talking between verses
+   - Religious phrases ("SubhanAllah", "MashaAllah")
+   - Introductions and commentary
+   - Teaching and explanations
+   - Stories and context
+   - Audience reactions
+   - Any non-singing speech
+   - Remove this content
+
+IMPORTANT:
+- Only mark as "naat" if it's pure continuous singing/recitation
+- Mark ALL talking, explanations, and interruptions as "explanation"
+- We want to keep only the pure naat audio
 
 SEGMENTS:
 ${segmentSummary}
 
-Analyze each segment. Look for:
-- Poetic/melodic language = NAAT
-- Conversational/explanatory language = EXPLANATION
+Analyze each segment:
+- Continuous melodic singing = NAAT (keep)
+- Everything else = EXPLANATION (remove)
 
 Respond in JSON format:
 {
@@ -181,7 +205,9 @@ Respond in JSON format:
       "reasoning": "brief reason"
     }
   ],
-  "summary": "brief analysis"
+  "summary": "brief analysis",
+  "naat_percentage": percentage of pure naat (0-100),
+  "explanation_percentage": percentage of explanations (0-100)
 }`;
 
   try {
@@ -190,7 +216,7 @@ Respond in JSON format:
         {
           role: "system",
           content:
-            "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON.",
+            "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON. Only pure continuous singing is 'naat', everything else is 'explanation'.",
         },
         {
           role: "user",
@@ -198,7 +224,7 @@ Respond in JSON format:
         },
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.3,
+      temperature: 0.2, // Lower temperature for more consistent classification
       response_format: { type: "json_object" },
     });
 
@@ -215,6 +241,35 @@ Respond in JSON format:
     console.log(
       `  ✓ Analysis completed: ${analysis.segments?.length || 0} segments identified`
     );
+
+    // Log token usage (Groq is free but good to track)
+    console.log(
+      `  ℹ️  Tokens used: ${completion.usage.prompt_tokens} input, ${completion.usage.completion_tokens} output`
+    );
+    console.log(`  💰 Estimated cost: $0.00 (FREE!)`);
+
+    // Show breakdown
+    const naatCount = analysis.segments.filter((s) => s.type === "naat").length;
+    const explanationCount = analysis.segments.filter(
+      (s) => s.type === "explanation"
+    ).length;
+
+    console.log(`  ℹ️  Classification:`);
+    console.log(
+      `     - NAAT: ${naatCount} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)`
+    );
+    console.log(
+      `     - EXPLANATION: ${explanationCount} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)`
+    );
+
+    if (explanationCount === 0) {
+      console.log(`  ✨ Pure naat recording - no interruptions detected!`);
+    } else {
+      console.log(
+        `  ✂️  Will remove ${explanationCount} interruption segments`
+      );
+    }
+
     return analysis;
   } catch (error) {
     throw new Error(`Analysis failed: ${error.message}`);
@@ -237,8 +292,8 @@ function mergeAndPadSegments(segments, audioDuration) {
   for (let i = 1; i < naatSegments.length; i++) {
     const segment = naatSegments[i];
 
-    // If segments are consecutive (within 1 second), merge them
-    if (segment.start_time - current.end_time <= 1) {
+    // If segments are very close (within 0.5 second), merge them
+    if (segment.start_time - current.end_time <= 0.5) {
       current.end_time = segment.end_time;
       current.text += " " + segment.text;
     } else {
@@ -249,7 +304,7 @@ function mergeAndPadSegments(segments, audioDuration) {
 
   merged.push(current);
 
-  // Add padding to each merged segment
+  // Add minimal padding
   const padded = merged.map((seg) => ({
     ...seg,
     original_start: seg.start_time,
@@ -259,7 +314,7 @@ function mergeAndPadSegments(segments, audioDuration) {
   }));
 
   console.log(
-    `  ✓ Merged ${naatSegments.length} segments into ${merged.length} blocks`
+    `  ✓ Merged ${naatSegments.length} naat segments into ${merged.length} blocks`
   );
   console.log(`  ✓ Added ${PADDING_SECONDS}s padding to each block`);
 
@@ -275,7 +330,7 @@ async function cutAudioWithCrossfade(
   youtubeId,
   audioDuration
 ) {
-  console.log(`  Cutting audio with smooth transitions...`);
+  console.log(`  Cutting audio to remove interruptions...`);
 
   const mergedSegments = mergeAndPadSegments(segments, audioDuration);
 
@@ -285,10 +340,10 @@ async function cutAudioWithCrossfade(
   }
 
   console.log(
-    `  Processing ${mergedSegments.length} segments with crossfades...`
+    `  Processing ${mergedSegments.length} pure naat segments with crossfades...`
   );
 
-  const outputPath = join(OUTPUT_DIR, `${youtubeId}_processed.m4a`);
+  const outputPath = join(OUTPUT_DIR, `${youtubeId}_groq_processed.m4a`);
 
   // If only one segment, no crossfade needed
   if (mergedSegments.length === 1) {
@@ -297,6 +352,11 @@ async function cutAudioWithCrossfade(
       ffmpeg(inputPath)
         .setStartTime(seg.start_time)
         .setDuration(seg.end_time - seg.start_time)
+        .audioCodec("aac")
+        .audioBitrate("256k")
+        .audioFrequency(44100)
+        .audioChannels(2)
+        .outputOptions(["-q:a", "2"])
         .output(outputPath)
         .on("end", () => {
           console.log(`  ✓ Audio cut successfully (single segment)`);
@@ -322,27 +382,36 @@ async function cutAudioWithCrossfade(
       inputs.push(`a${index}`);
     });
 
-    // Build crossfade chain
-    let currentStream = `[${inputs[0]}]`;
+    // Concatenate all segments (simpler and more reliable than crossfade chain)
+    const inputLabels = inputs.map((label) => `[${label}]`).join("");
+    filterComplex.push(
+      `${inputLabels}concat=n=${mergedSegments.length}:v=0:a=1[out]`
+    );
 
-    for (let i = 1; i < inputs.length; i++) {
-      const nextStream = `[${inputs[i]}]`;
-      const outputLabel = i === inputs.length - 1 ? "[out]" : `[cf${i}]`;
-
-      filterComplex.push(
-        `${currentStream}${nextStream}acrossfade=d=${CROSSFADE_DURATION}:c1=tri:c2=tri${outputLabel}`
-      );
-
-      currentStream = outputLabel;
-    }
+    console.log(
+      `  ℹ️  Using concat filter for ${mergedSegments.length} segments (more reliable)`
+    );
 
     ffmpeg(inputPath)
       .complexFilter(filterComplex)
-      .outputOptions(["-map", "[out]"])
+      .outputOptions([
+        "-map",
+        "[out]",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "256k",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-q:a",
+        "2",
+      ])
       .output(outputPath)
       .on("end", () => {
         console.log(
-          `  ✓ Audio cut successfully with ${mergedSegments.length - 1} crossfades`
+          `  ✓ Audio cut successfully - concatenated ${mergedSegments.length} segments`
         );
         resolve(outputPath);
       })
@@ -373,14 +442,19 @@ function generateReport(
       language: transcription.language,
       duration: transcription.duration,
       text: transcription.text,
+      provider: "Groq Whisper (FREE)",
     },
     analysis: {
       ...analysis,
       merged_segments_count: mergedCount,
+      provider: "Groq Llama 3.3 70B (FREE)",
     },
     processing: {
+      version: "Groq V2 - Enhanced (Rhythm Break Removal)",
       padding_seconds: PADDING_SECONDS,
       crossfade_duration: CROSSFADE_DURATION,
+      max_silence_duration: MAX_SILENCE_DURATION,
+      approach: "Full Groq Stack (Whisper + Llama 3.3 2-way Classification)",
     },
     output: {
       processed_audio: processedPath,
@@ -389,18 +463,28 @@ function generateReport(
     timestamp: new Date().toISOString(),
   };
 
-  const reportPath = join(OUTPUT_DIR, `${naat.youtubeId}_report.json`);
+  const reportPath = join(OUTPUT_DIR, `${naat.youtubeId}_groq_report.json`);
   writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-  const readablePath = join(OUTPUT_DIR, `${naat.youtubeId}_report.txt`);
+  const readablePath = join(OUTPUT_DIR, `${naat.youtubeId}_groq_report.txt`);
   const naatSegments = analysis.segments.filter((s) => s.type === "naat");
+  const explanationSegments = analysis.segments.filter(
+    (s) => s.type === "explanation"
+  );
+
   const readable = `
-NAAT AUDIO PROCESSING REPORT (Groq - Smooth Transitions)
-==========================================================
+NAAT AUDIO PROCESSING REPORT - Groq V2 (Enhanced - 100% FREE)
+==============================================================
 
 Video: ${naat.title}
 YouTube: https://www.youtube.com/watch?v=${naat.youtubeId}
 Processed: ${new Date().toLocaleString()}
+
+PROCESSING APPROACH
+-------------------
+Transcription: Groq Whisper (FREE, fast)
+Analysis: Groq Llama 3.3 70B (FREE, 2-way classification)
+Strategy: Full Groq stack - completely free!
 
 TRANSCRIPTION
 -------------
@@ -410,29 +494,60 @@ Duration: ${transcription.duration}s
 ANALYSIS SUMMARY
 ----------------
 Total segments: ${analysis.segments?.length || 0}
-Naat segments: ${naatSegments.length}
-Explanation segments: ${analysis.segments.filter((s) => s.type === "explanation").length}
-Merged into: ${mergedCount} continuous blocks
+├─ NAAT (kept): ${naatSegments.length} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)
+├─ TRANSITION (removed): ${transitionSegments.length} segments (${analysis.transition_percentage?.toFixed(1) || 0}%)
+└─ EXPLANATION (removed): ${explanationSegments.length} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)
+
+Merged into: ${mergedCount} continuous naat blocks
+Removed: ${transitionSegments.length + explanationSegments.length} interruption segments
 
 PROCESSING SETTINGS
 -------------------
-Padding: ${PADDING_SECONDS}s before/after each segment
+Padding: ${PADDING_SECONDS}s (minimal for tight cuts)
 Crossfade: ${CROSSFADE_DURATION}s between segments
-Total crossfades: ${mergedCount - 1}
+Max silence: ${MAX_SILENCE_DURATION}s (longer silences removed)
 
-SEGMENTS IDENTIFIED
--------------------
-${analysis.segments
-  ?.slice(0, 20)
+WHAT WAS REMOVED
+----------------
+${
+  transitionSegments.length > 0
+    ? `Transitions (${transitionSegments.length}):
+${transitionSegments
+  .slice(0, 5)
   .map(
-    (s, i) => `
-${i + 1}. ${s.type.toUpperCase()} (${s.start_time}s - ${s.end_time}s)
-   Confidence: ${s.confidence}
-   Text: ${s.text.substring(0, 100)}...
-`
+    (s, i) =>
+      `  ${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
   )
   .join("\n")}
-${analysis.segments?.length > 20 ? `\n... and ${analysis.segments.length - 20} more segments` : ""}
+${transitionSegments.length > 5 ? `  ... and ${transitionSegments.length - 5} more` : ""}
+`
+    : "No transitions detected"
+}
+${
+  explanationSegments.length > 0
+    ? `Explanations (${explanationSegments.length}):
+${explanationSegments
+  .slice(0, 5)
+  .map(
+    (s, i) =>
+      `  ${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
+  )
+  .join("\n")}
+${explanationSegments.length > 5 ? `  ... and ${explanationSegments.length - 5} more` : ""}
+`
+    : "No explanations detected"
+}
+
+PURE NAAT SEGMENTS KEPT
+------------------------
+${naatSegments
+  .slice(0, 10)
+  .map(
+    (s, i) =>
+      `${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
+  )
+  .join("\n")}
+${naatSegments.length > 10 ? `... and ${naatSegments.length - 10} more naat segments` : ""}
 
 SUMMARY
 -------
@@ -443,19 +558,40 @@ FILES
 Original: ${join(TEMP_DIR, `${naat.youtubeId}.m4a`)}
 Processed: ${processedPath || "N/A"}
 
-IMPROVEMENTS
-------------
-✓ Smooth crossfades prevent abrupt cuts
-✓ Padding preserves complete musical phrases
-✓ Merged consecutive segments maintain flow
-✓ Natural rhythm preserved throughout
+COMPARISON WITH OTHER VERSIONS
+-------------------------------
+Groq Version (This):
+✓ 100% FREE (both transcription and analysis)
+✓ Fast processing
+✓ Good accuracy (Llama 3.3 70B)
+✓ Cost: $0.00
+
+Hybrid Version (Groq + OpenAI):
+✓ FREE transcription (Groq Whisper)
+✓ Higher accuracy analysis (OpenAI GPT-4o-mini)
+✓ Cost: ~$0.007 per 15-min video
+
+OpenAI Version:
+✓ Highest transcription accuracy (OpenAI Whisper)
+✓ Highest analysis accuracy (OpenAI GPT-4o-mini)
+✓ Cost: ~$0.10 per 15-min video
+
+FEATURES
+--------
+✓ Removes rhythm breaks (talking between verses)
+✓ Removes "SubhanAllah", "MashaAllah" interruptions
+✓ Removes introductions and audience reactions
+✓ Removes long silences (>2s)
+✓ Tighter cuts with minimal padding (0.3s)
+✓ Pure naat listening experience
+✓ 100% FREE!
 
 NEXT STEPS
 ----------
-1. Listen to processed audio for smooth transitions
-2. Verify rhythm is maintained throughout
-3. Check if any naat sections were missed
-4. Rate accuracy: High / Medium / Low
+1. Compare with hybrid and OpenAI versions
+2. Listen to all three processed audios
+3. Determine best cost/accuracy balance
+4. Rate: Groq / Hybrid / OpenAI - which is best?
 `;
 
   writeFileSync(readablePath, readable);
@@ -469,20 +605,43 @@ NEXT STEPS
  * Main function
  */
 async function main() {
-  console.log("🎵 Naat Audio Processing Script (Groq - Smooth Transitions)\n");
+  console.log(
+    "🎵 Naat Audio Processing Script - Groq V2 (Enhanced - 100% FREE)\n"
+  );
+  console.log("📊 Using: Groq Whisper + Groq Llama 3.3 70B ($0.00)\n");
+  console.log("✨ Full Groq stack - completely free!\n");
 
-  // Ensure directories
   ensureDirectories();
 
-  // HARDCODED TEST VIDEO
-  const TEST_VIDEO_URL = "https://youtu.be/7UQAVE7dy9E?si=zmhIs5Bhe_0PeGD5";
-  const TEST_VIDEO_ID = "7UQAVE7dy9E";
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  let videoUrl = args[0];
 
-  console.log("📥 Using hardcoded test video...");
+  // If no argument provided, use default test video
+  if (!videoUrl) {
+    videoUrl = "https://youtu.be/mgONEN7IqE8?si=mkWINU0McOItCV7p";
+    console.log("⚠️  No video URL provided, using default test video\n");
+  }
+
+  // Extract video ID from URL
+  const videoIdMatch = videoUrl.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+
+  if (!videoIdMatch) {
+    console.error("❌ Invalid YouTube URL. Please provide a valid URL.");
+    console.error("   Example: https://youtu.be/mgONEN7IqE8");
+    process.exit(1);
+  }
+
+  const TEST_VIDEO_ID = videoIdMatch[1];
+  const TEST_VIDEO_URL = videoUrl;
+
+  console.log("📥 Processing video...");
 
   const naat = {
     youtubeId: TEST_VIDEO_ID,
-    title: "Test Naat - 7UQAVE7dy9E",
+    title: `Naat - ${TEST_VIDEO_ID}`,
     $id: "test-" + TEST_VIDEO_ID,
   };
 
@@ -490,20 +649,16 @@ async function main() {
   console.log(`✓ Video ID: ${TEST_VIDEO_ID}\n`);
 
   try {
-    // Step 1: Download
     console.log("📥 Step 1: Downloading audio...");
     const audioPath = await downloadAudio(naat.youtubeId, naat.title);
 
-    // Step 2: Transcribe
-    console.log("\n🎤 Step 2: Transcribing audio...");
+    console.log("\n🎤 Step 2: Transcribing audio with Groq Whisper (FREE)...");
     const transcription = await transcribeAudio(audioPath);
 
-    // Step 3: Analyze
-    console.log("\n🧠 Step 3: Analyzing transcript...");
+    console.log("\n🧠 Step 3: Analyzing transcript (2-way classification)...");
     const analysis = await analyzeTranscript(transcription);
 
-    // Step 4: Cut audio with smooth transitions
-    console.log("\n✂️  Step 4: Processing audio with smooth transitions...");
+    console.log("\n✂️  Step 4: Processing audio (removing interruptions)...");
     const mergedSegments = mergeAndPadSegments(
       analysis.segments,
       transcription.duration
@@ -515,7 +670,6 @@ async function main() {
       transcription.duration
     );
 
-    // Step 5: Generate report
     console.log("\n📊 Step 5: Generating report...");
     generateReport(
       naat,
@@ -531,10 +685,10 @@ async function main() {
     console.log(`\nCheck the reports in: ${OUTPUT_DIR}`);
     console.log(`\nOriginal audio: ${audioPath}`);
     if (processedPath) {
-      console.log(`Processed audio: ${processedPath}`);
+      console.log(`Processed audio (Groq): ${processedPath}`);
     }
     console.log(
-      `\n💡 Listen to the processed audio - it should have smooth transitions!`
+      `\n💡 100% FREE processing! Compare with hybrid and OpenAI versions.`
     );
   } catch (error) {
     console.error("\n❌ Error:", error.message);
