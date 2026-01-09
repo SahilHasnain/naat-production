@@ -10,6 +10,7 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   StatusBar,
@@ -124,6 +125,11 @@ const VideoModal: React.FC<VideoModalProps> = ({
             } else {
               // If audio not available, fall back to video mode
               setMode("video");
+              Alert.alert(
+                "Audio Not Available",
+                "Audio version is not available for this naat. Playing video instead.",
+                [{ text: "OK" }]
+              );
             }
             setAudioLoading(false);
           }
@@ -131,6 +137,11 @@ const VideoModal: React.FC<VideoModalProps> = ({
           // On error, default to video mode
           setMode("video");
           setAudioLoading(false);
+          Alert.alert(
+            "Audio Error",
+            "Unable to load audio. Playing video instead.",
+            [{ text: "OK" }]
+          );
         }
       };
 
@@ -176,9 +187,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
           // Save preference immediately after successful mode change
           await storageService.savePlaybackMode(newMode);
         } else {
-          throw new Error(
-            response.error || "Audio not available for this naat."
-          );
+          const errorMessage =
+            response.error || "Audio not available for this naat.";
+          Alert.alert("Audio Not Available", errorMessage, [{ text: "OK" }]);
+          throw new Error(errorMessage);
         }
       } else {
         // Switch to video or audio (if URL already exists)
@@ -190,6 +202,9 @@ const VideoModal: React.FC<VideoModalProps> = ({
       const error =
         err instanceof Error ? err : new Error("Failed to switch mode");
       setAudioError(error);
+
+      // Show alert for audio errors
+      Alert.alert("Audio Error", error.message, [{ text: "OK" }]);
       // Stay in current mode on error
     } finally {
       setAudioLoading(false);
@@ -248,9 +263,13 @@ const VideoModal: React.FC<VideoModalProps> = ({
       setIsLocalFile(true);
     } catch (error) {
       console.error("Download failed:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Download failed";
       setAudioError(
         error instanceof Error ? error : new Error("Download failed")
       );
+
+      Alert.alert("Download Failed", errorMessage, [{ text: "OK" }]);
     } finally {
       setIsDownloading(false);
     }
@@ -427,6 +446,14 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     }}
                     onChangeState={onStateChange}
                     onFullScreenChange={handleFullscreenChange}
+                    onError={(error: string) => {
+                      setIsLoading(false);
+                      Alert.alert(
+                        "Video Error",
+                        "Unable to load video. Please check your internet connection and try again.",
+                        [{ text: "OK" }]
+                      );
+                    }}
                     webViewStyle={{ opacity: isLoading ? 0 : 1 }}
                     initialPlayerParams={{
                       controls: true,

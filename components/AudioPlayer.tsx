@@ -69,6 +69,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           const error = new Error(`Playback error: ${status.error}`);
           setPlaybackState((prev) => ({ ...prev, error, isLoading: false }));
           onError(error);
+
+          Alert.alert(
+            "Playback Error",
+            `Unable to play audio: ${status.error}`,
+            [{ text: "OK" }]
+          );
         }
         return;
       }
@@ -152,6 +158,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             error: err,
           }));
           onError(err);
+
+          Alert.alert(
+            "Audio Loading Failed",
+            err.message || "Unable to load audio file. Please try again.",
+            [{ text: "OK" }]
+          );
         }
       }
     };

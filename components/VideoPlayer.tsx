@@ -25,6 +25,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
           videoId={videoId}
           play={false}
           onReady={() => setIsLoading(false)}
+          onError={(error: string) => {
+            setIsLoading(false);
+            Alert.alert(
+              "Video Error",
+              "Unable to load video. Please check your internet connection and try again.",
+              [{ text: "OK" }]
+            );
+          }}
           webViewStyle={{ opacity: isLoading ? 0 : 1 }}
           initialPlayerParams={{
             controls: true,
