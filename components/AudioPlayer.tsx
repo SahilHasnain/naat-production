@@ -263,7 +263,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     return (
       <View className="flex-1 items-center justify-center bg-black">
         <ActivityIndicator size="large" color={colors.text.primary} />
-        <Text className="mt-4 text-white">Loading audio...</Text>
+        <Text className="mt-4 text-white">
+          {isLocalFile ? "Preparing audio..." : "Loading audio..."}
+        </Text>
       </View>
     );
   }

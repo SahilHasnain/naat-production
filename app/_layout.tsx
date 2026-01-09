@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
 import { Tabs } from "expo-router";
 import React from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
 // Initialize Sentry
@@ -19,6 +19,7 @@ function RootLayout() {
   const insets = useSafeAreaInsets();
 
   return (
+    <SafeAreaProvider>
     <ErrorBoundary>
       <Tabs
         screenOptions={{
@@ -29,8 +30,8 @@ function RootLayout() {
             backgroundColor: colors.background.elevated,
             borderTopColor: colors.background.elevated,
             borderTopWidth: 1,
-            height: 60 + insets.bottom,
-            paddingBottom: insets.bottom + 8,
+            height: 68 + insets.bottom,
+            paddingBottom: insets.bottom,
             paddingTop: 8,
           },
           tabBarLabelStyle: {
@@ -59,6 +60,7 @@ function RootLayout() {
         />
       </Tabs>
     </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

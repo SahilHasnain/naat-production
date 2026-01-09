@@ -3,7 +3,7 @@ import { DownloadedAudioModalProps } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ActivityIndicator, Modal, StatusBar, Text, View } from "react-native";
+import { Modal, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AudioPlayer from "./AudioPlayer";
 
@@ -12,7 +12,6 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
   onClose,
   audio,
 }) => {
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Generate thumbnail URL from YouTube ID
@@ -22,14 +21,12 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
   const handleError = (err: Error) => {
     console.error("[DownloadedAudioModal] Audio error:", err);
     setError(err);
-    setIsLoading(false);
     showErrorToast("Unable to play audio file");
   };
 
   // Reset state when modal opens
   React.useEffect(() => {
     if (visible) {
-      setIsLoading(true);
       setError(null);
     }
   }, [visible]);
@@ -71,15 +68,8 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
               </View>
             </SafeAreaView>
 
-            {/* Audio Player or Loading/Error State */}
-            {isLoading && !error ? (
-              <View className="flex-1 items-center justify-center bg-black">
-                <ActivityIndicator size="large" color={colors.accent.primary} />
-                <Text className="mt-3 text-sm text-neutral-400">
-                  Loading audio...
-                </Text>
-              </View>
-            ) : error ? (
+            {/* Audio Player or Error State */}
+            {error ? (
               <View className="flex-1 items-center justify-center px-8 bg-black">
                 <Ionicons
                   name="alert-circle"
