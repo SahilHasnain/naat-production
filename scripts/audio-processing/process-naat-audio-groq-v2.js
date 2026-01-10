@@ -149,15 +149,13 @@ async function transcribeAudio(audioPath) {
 }
 
 /**
- * Analyze transcript with Groq Llama 3.3 (2-WAY CLASSIFICATION)
+ * Analyze a batch of segments
  */
-async function analyzeTranscript(transcription) {
-  console.log(`  Analyzing transcript with Groq Llama 3.3 (FREE, 2-way)...`);
-
-  const segmentSummary = transcription.segments
-    ?.map(
+async function analyzeBatch(segments, batchIndex, totalBatches) {
+  const segmentSummary = segments
+    .map(
       (s, i) =>
-        `[${i}] ${s.start.toFixed(1)}-${s.end.toFixed(1)}s: ${s.text.substring(0, 150)}`
+        `[${s.originalIndex}] ${s.start.toFixed(1)}-${s.end.toFixed(1)}s: ${s.text.substring(0, 100)}`
     )
     .join("\n");
 
@@ -186,7 +184,7 @@ IMPORTANT:
 - Mark ALL talking, explanations, and interruptions as "explanation"
 - We want to keep only the pure naat audio
 
-SEGMENTS:
+SEGMENTS (Batch ${batchIndex + 1}/${totalBatches}):
 ${segmentSummary}
 
 Analyze each segment:
@@ -197,83 +195,128 @@ Respond in JSON format:
 {
   "segments": [
     {
-      "segment_index": 0,
+      "segment_index": original_segment_index,
       "type": "naat" or "explanation",
       "start_time": seconds,
       "end_time": seconds,
       "confidence": "high/medium/low",
       "reasoning": "brief reason"
     }
-  ],
-  "summary": "brief analysis",
-  "naat_percentage": percentage of pure naat (0-100),
-  "explanation_percentage": percentage of explanations (0-100)
+  ]
 }`;
 
-  try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON. Only pure continuous singing is 'naat', everything else is 'explanation'.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.2, // Lower temperature for more consistent classification
-      response_format: { type: "json_object" },
-    });
+  const completion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert in Urdu language and Islamic naats. Respond only with valid JSON. Only pure continuous singing is 'naat', everything else is 'explanation'.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    model: "llama-3.1-70b-versatile",
+    temperature: 0.2,
+    response_format: { type: "json_object" },
+  });
 
-    const analysis = JSON.parse(completion.choices[0].message.content);
+  return JSON.parse(completion.choices[0].message.content);
+}
 
-    // Enrich segments with full text from transcription
-    if (analysis.segments && transcription.segments) {
-      analysis.segments = analysis.segments.map((seg) => ({
-        ...seg,
-        text: transcription.segments[seg.segment_index]?.text || "",
-      }));
-    }
+/**
+ * Analyze transcript with Groq Llama (BATCHED for long videos)
+ */
+async function analyzeTranscript(transcription) {
+  console.log(`  Analyzing transcript with Groq Llama (FREE, batched)...`);
 
-    console.log(
-      `  ✓ Analysis completed: ${analysis.segments?.length || 0} segments identified`
-    );
+  const segments = transcription.segments || [];
+  const BATCH_SIZE = 60; // Conservative batch size to stay under token limits
 
-    // Log token usage (Groq is free but good to track)
-    console.log(
-      `  ℹ️  Tokens used: ${completion.usage.prompt_tokens} input, ${completion.usage.completion_tokens} output`
-    );
-    console.log(`  💰 Estimated cost: $0.00 (FREE!)`);
+  console.log(`  Total segments: ${segments.length}`);
 
-    // Show breakdown
-    const naatCount = analysis.segments.filter((s) => s.type === "naat").length;
-    const explanationCount = analysis.segments.filter(
-      (s) => s.type === "explanation"
-    ).length;
+  // Add original index to each segment
+  const indexedSegments = segments.map((s, i) => ({
+    ...s,
+    originalIndex: i,
+  }));
 
-    console.log(`  ℹ️  Classification:`);
-    console.log(
-      `     - NAAT: ${naatCount} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)`
-    );
-    console.log(
-      `     - EXPLANATION: ${explanationCount} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)`
-    );
-
-    if (explanationCount === 0) {
-      console.log(`  ✨ Pure naat recording - no interruptions detected!`);
-    } else {
-      console.log(
-        `  ✂️  Will remove ${explanationCount} interruption segments`
-      );
-    }
-
-    return analysis;
-  } catch (error) {
-    throw new Error(`Analysis failed: ${error.message}`);
+  // Split into batches
+  const batches = [];
+  for (let i = 0; i < indexedSegments.length; i += BATCH_SIZE) {
+    batches.push(indexedSegments.slice(i, i + BATCH_SIZE));
   }
+
+  console.log(
+    `  Processing in ${batches.length} batches (${BATCH_SIZE} segments each)...`
+  );
+
+  // Process each batch
+  const allAnalyzedSegments = [];
+  let totalTokensInput = 0;
+  let totalTokensOutput = 0;
+
+  for (let i = 0; i < batches.length; i++) {
+    console.log(`  Analyzing batch ${i + 1}/${batches.length}...`);
+
+    try {
+      const batchResult = await analyzeBatch(batches[i], i, batches.length);
+
+      // Enrich with full text
+      if (batchResult.segments) {
+        const enrichedSegments = batchResult.segments.map((seg) => ({
+          ...seg,
+          text: segments[seg.segment_index]?.text || "",
+        }));
+        allAnalyzedSegments.push(...enrichedSegments);
+      }
+
+      // Small delay between batches to avoid rate limits
+      if (i < batches.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      console.error(`  ⚠️  Batch ${i + 1} failed: ${error.message}`);
+      // Continue with other batches
+    }
+  }
+
+  console.log(
+    `  ✓ Analysis completed: ${allAnalyzedSegments.length} segments classified`
+  );
+
+  // Calculate statistics
+  const naatCount = allAnalyzedSegments.filter((s) => s.type === "naat").length;
+  const explanationCount = allAnalyzedSegments.filter(
+    (s) => s.type === "explanation"
+  ).length;
+
+  const naatPercentage = (naatCount / allAnalyzedSegments.length) * 100;
+  const explanationPercentage =
+    (explanationCount / allAnalyzedSegments.length) * 100;
+
+  console.log(`  💰 Estimated cost: $0.00 (FREE!)`);
+  console.log(`  ℹ️  Classification:`);
+  console.log(
+    `     - NAAT: ${naatCount} segments (${naatPercentage.toFixed(1)}%)`
+  );
+  console.log(
+    `     - EXPLANATION: ${explanationCount} segments (${explanationPercentage.toFixed(1)}%)`
+  );
+
+  if (explanationCount === 0) {
+    console.log(`  ✨ Pure naat recording - no interruptions detected!`);
+  } else {
+    console.log(`  ✂️  Will remove ${explanationCount} interruption segments`);
+  }
+
+  return {
+    segments: allAnalyzedSegments,
+    summary: `Processed ${batches.length} batches, classified ${allAnalyzedSegments.length} segments`,
+    naat_percentage: naatPercentage,
+    explanation_percentage: explanationPercentage,
+  };
 }
 
 /**
@@ -447,14 +490,14 @@ function generateReport(
     analysis: {
       ...analysis,
       merged_segments_count: mergedCount,
-      provider: "Groq Llama 3.3 70B (FREE)",
+      provider: "Groq Llama 3.1 70B (FREE, Batched)",
     },
     processing: {
-      version: "Groq V2 - Enhanced (Rhythm Break Removal)",
+      version: "Groq V2 - Enhanced (Batched Processing)",
       padding_seconds: PADDING_SECONDS,
       crossfade_duration: CROSSFADE_DURATION,
       max_silence_duration: MAX_SILENCE_DURATION,
-      approach: "Full Groq Stack (Whisper + Llama 3.3 2-way Classification)",
+      approach: "Full Groq Stack (Whisper + Llama 3.1 Batched Classification)",
     },
     output: {
       processed_audio: processedPath,
@@ -483,8 +526,8 @@ Processed: ${new Date().toLocaleString()}
 PROCESSING APPROACH
 -------------------
 Transcription: Groq Whisper (FREE, fast)
-Analysis: Groq Llama 3.3 70B (FREE, 2-way classification)
-Strategy: Full Groq stack - completely free!
+Analysis: Groq Llama 3.1 70B (FREE, batched processing)
+Strategy: Full Groq stack - completely free, handles videos of any length!
 
 TRANSCRIPTION
 -------------
@@ -495,11 +538,10 @@ ANALYSIS SUMMARY
 ----------------
 Total segments: ${analysis.segments?.length || 0}
 ├─ NAAT (kept): ${naatSegments.length} segments (${analysis.naat_percentage?.toFixed(1) || 0}%)
-├─ TRANSITION (removed): ${transitionSegments.length} segments (${analysis.transition_percentage?.toFixed(1) || 0}%)
 └─ EXPLANATION (removed): ${explanationSegments.length} segments (${analysis.explanation_percentage?.toFixed(1) || 0}%)
 
 Merged into: ${mergedCount} continuous naat blocks
-Removed: ${transitionSegments.length + explanationSegments.length} interruption segments
+Removed: ${explanationSegments.length} interruption segments
 
 PROCESSING SETTINGS
 -------------------
@@ -509,20 +551,6 @@ Max silence: ${MAX_SILENCE_DURATION}s (longer silences removed)
 
 WHAT WAS REMOVED
 ----------------
-${
-  transitionSegments.length > 0
-    ? `Transitions (${transitionSegments.length}):
-${transitionSegments
-  .slice(0, 5)
-  .map(
-    (s, i) =>
-      `  ${i + 1}. ${s.start_time.toFixed(1)}-${s.end_time.toFixed(1)}s: ${s.text.substring(0, 80)}...`
-  )
-  .join("\n")}
-${transitionSegments.length > 5 ? `  ... and ${transitionSegments.length - 5} more` : ""}
-`
-    : "No transitions detected"
-}
 ${
   explanationSegments.length > 0
     ? `Explanations (${explanationSegments.length}):
@@ -535,7 +563,7 @@ ${explanationSegments
   .join("\n")}
 ${explanationSegments.length > 5 ? `  ... and ${explanationSegments.length - 5} more` : ""}
 `
-    : "No explanations detected"
+    : "No explanations detected - pure naat recording!"
 }
 
 PURE NAAT SEGMENTS KEPT
@@ -585,6 +613,7 @@ FEATURES
 ✓ Tighter cuts with minimal padding (0.3s)
 ✓ Pure naat listening experience
 ✓ 100% FREE!
+✓ Handles videos of ANY length (batched processing)
 
 NEXT STEPS
 ----------

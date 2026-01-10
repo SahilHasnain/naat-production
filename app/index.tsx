@@ -5,10 +5,15 @@ import NaatCard from "@/components/NaatCard";
 import SearchBar from "@/components/SearchBar";
 import SortFilterBar from "@/components/SortFilterBar";
 import { colors } from "@/constants/theme";
+import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
+import { appwriteService } from "@/services/appwrite";
+import { audioDownloadService } from "@/services/audioDownload";
+import { storageService } from "@/services/storage";
 import type { Naat, SortOption } from "@/types";
+import { showErrorToast } from "@/utils/toast";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +27,7 @@ export default function HomeScreen() {
   // Modal state
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isVideoFallback, setIsVideoFallback] = useState(false);
 
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState<SortOption>("latest");
@@ -32,6 +38,9 @@ export default function HomeScreen() {
   // Back to top state
   const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  // Audio player context
+  const { loadAndPlay } = useAudioPlayer();
 
   // Data fetching hooks
   const {
@@ -61,10 +70,90 @@ export default function HomeScreen() {
   const displayData: Naat[] = isSearching ? searchResults : naats;
   const isLoading = isSearching ? searchLoading : loading;
 
-  // Handle naat selection and open modal
-  const handleNaatPress = (naatId: string) => {
+  // Handle naat selection - check preference and open accordingly
+  const handleNaatPress = async (naatId: string) => {
     const naat = displayData.find((n) => n.$id === naatId);
-    if (naat) {
+    if (!naat) return;
+
+    try {
+      // Check saved playback mode preference
+      const savedMode = await storageService.loadPlaybackMode();
+
+      // If user prefers audio mode, load audio directly
+      if (savedMode === "audio") {
+        await loadAudioDirectly(naat);
+      } else {
+        // Default to video mode - user explicitly chose video
+        setIsVideoFallback(false);
+        setSelectedNaat(naat);
+        setModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Error checking playback preference:", error);
+      // Fallback to video mode on error
+      setIsVideoFallback(false);
+      setSelectedNaat(naat);
+      setModalVisible(true);
+    }
+  };
+
+  // Load audio directly without opening video modal
+  const loadAudioDirectly = async (naat: Naat) => {
+    // Fallback to video if no audio ID
+    if (!naat.audioId) {
+      console.log("No audio ID available, falling back to video mode");
+      showErrorToast("Audio not available. Playing video instead.");
+      setIsVideoFallback(true); // Mark as fallback
+      setSelectedNaat(naat);
+      setModalVisible(true);
+      return;
+    }
+
+    try {
+      // Check if audio is downloaded first
+      let audioUrl: string;
+      let isLocalFile = false;
+
+      const downloaded = await audioDownloadService.isDownloaded(naat.audioId);
+
+      if (downloaded) {
+        // Use local file
+        audioUrl = audioDownloadService.getLocalPath(naat.audioId);
+        isLocalFile = true;
+      } else {
+        // Fetch from storage
+        const response = await appwriteService.getAudioUrl(naat.audioId);
+
+        if (response.success && response.audioUrl) {
+          audioUrl = response.audioUrl;
+        } else {
+          // Fallback to video mode if audio not available
+          console.log("Audio not available, falling back to video mode");
+          showErrorToast("Audio not available. Playing video instead.");
+          setIsVideoFallback(true); // Mark as fallback
+          setSelectedNaat(naat);
+          setModalVisible(true);
+          return;
+        }
+      }
+
+      // Load audio via AudioContext
+      const audioMetadata: AudioMetadata = {
+        audioUrl,
+        title: naat.title,
+        channelName: naat.channelName,
+        thumbnailUrl: naat.thumbnailUrl,
+        isLocalFile,
+        audioId: naat.audioId,
+        youtubeId: naat.youtubeId,
+      };
+
+      await loadAndPlay(audioMetadata);
+    } catch (err) {
+      // Fallback to video mode on error
+      console.error("Failed to load audio, falling back to video mode:", err);
+      showErrorToast("Failed to load audio. Playing video instead.");
+      setIsVideoFallback(true); // Mark as fallback
       setSelectedNaat(naat);
       setModalVisible(true);
     }
@@ -266,6 +355,7 @@ export default function HomeScreen() {
           thumbnailUrl={selectedNaat.thumbnailUrl}
           youtubeId={selectedNaat.youtubeId}
           audioId={selectedNaat.audioId}
+          isFallback={isVideoFallback}
         />
       )}
     </View>

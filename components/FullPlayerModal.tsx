@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 interface FullPlayerModalProps {
   visible: boolean;
   onClose: () => void;
+  onSwitchToVideo?: () => void; // Callback to switch to video mode
 }
 
 // Format milliseconds to MM:SS
@@ -33,6 +34,7 @@ const formatTime = (millis: number): string => {
 const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   visible,
   onClose,
+  onSwitchToVideo,
 }) => {
   const {
     currentAudio,
@@ -132,8 +134,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
   if (!currentAudio) return null;
 
-  // Show download button only for streaming audio (not local files)
+  // Show download button for streaming audio (not local files)
+  // But also show it if audio is downloaded to allow deletion
   const canDownload = currentAudio.audioId && !currentAudio.isLocalFile;
+  const showDownloadButton = canDownload || isDownloaded;
 
   return (
     <Modal
@@ -177,7 +181,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             <View className="flex-1 items-center justify-center px-8">
               <Image
                 source={{ uri: currentAudio.thumbnailUrl }}
-                style={{ width: 320, height: 320 }}
+                style={{ width: 320, height: 240 }}
                 className="rounded-2xl"
                 contentFit="cover"
                 cachePolicy="memory-disk"
@@ -225,7 +229,19 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
               {/* Play/Pause Button with Download Controls */}
               <View className="mb-6 flex-row items-center justify-center gap-6">
-                {/* Play/Pause Button */}
+                {/* Switch to Video Button - Left */}
+                {currentAudio.youtubeId && onSwitchToVideo && (
+                  <TouchableOpacity
+                    onPress={onSwitchToVideo}
+                    className="h-16 w-16 items-center justify-center rounded-full bg-neutral-700"
+                    accessibilityLabel="Switch to video mode"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="videocam" size={28} color="white" />
+                  </TouchableOpacity>
+                )}
+
+                {/* Play/Pause Button - Center */}
                 <TouchableOpacity
                   onPress={togglePlayPause}
                   className="h-20 w-20 items-center justify-center rounded-full bg-white"
@@ -239,8 +255,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   />
                 </TouchableOpacity>
 
-                {/* Download/Delete Button */}
-                {canDownload && (
+                {/* Download/Delete Button - Right */}
+                {showDownloadButton && (
                   <TouchableOpacity
                     onPress={() => {
                       if (isDownloaded) {
@@ -264,7 +280,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     }`}
                     accessibilityLabel={
                       isDownloaded
-                        ? "Delete download"
+                        ? "Downloaded - Tap to delete"
                         : isDownloading
                           ? "Downloading"
                           : "Download for offline"
@@ -272,12 +288,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     accessibilityRole="button"
                   >
                     {isDownloading ? (
-                      <View className="items-center justify-center">
-                        <ActivityIndicator size="small" color="white" />
-                        <Text className="text-xs text-white mt-1">
-                          {Math.round(downloadProgress * 100)}%
-                        </Text>
-                      </View>
+                      <Ionicons name="hourglass" size={28} color="white" />
                     ) : (
                       <Ionicons
                         name={isDownloaded ? "checkmark-circle" : "download"}

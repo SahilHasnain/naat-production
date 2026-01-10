@@ -28,6 +28,7 @@ interface VideoModalProps extends VideoPlayerProps {
   thumbnailUrl?: string;
   youtubeId?: string;
   audioId?: string;
+  isFallback?: boolean; // Don't save preference if this is a fallback from audio mode
 }
 
 const VideoModal: React.FC<VideoModalProps> = ({
@@ -39,6 +40,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
   thumbnailUrl,
   youtubeId: propYoutubeId,
   audioId: propAudioId,
+  isFallback = false,
 }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -70,15 +72,23 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
   const videoId = getYouTubeId(videoUrl);
 
-  // Reset state when modal opens
+  // Reset state when modal opens and save video preference
   React.useEffect(() => {
     if (visible) {
       setIsLoading(true);
       setVideoPosition(0);
       setVideoDuration(0);
       setVideoPlaying(false);
+
+      // Only save video mode preference if this is NOT a fallback
+      // (i.e., user explicitly chose to open video)
+      if (!isFallback) {
+        storageService.savePlaybackMode("video").catch((error) => {
+          console.error("Failed to save video mode preference:", error);
+        });
+      }
     }
-  }, [visible]);
+  }, [visible, isFallback]);
 
   // Switch to audio mode - loads audio via AudioContext and closes modal
   const switchToAudio = async () => {

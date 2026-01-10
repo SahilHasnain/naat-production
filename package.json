@@ -16,6 +16,7 @@
     "process:naat:openai": "node scripts/audio-processing/process-naat-audio-openai-v2.js",
     "process:naat:groq": "node scripts/audio-processing/process-naat-audio-groq-v2.js",
     "process:naat:qubrid": "node scripts/audio-processing/process-naat-audio-qubrid-v2.js",
+    "upload:audio": "node scripts/utilities/download-audio.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },
