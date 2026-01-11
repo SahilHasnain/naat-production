@@ -35,8 +35,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/android-icon-foreground.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#000000"
         }
       ],
