@@ -16,11 +16,6 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
     const [imageError, setImageError] = React.useState(false);
     const [imageLoading, setImageLoading] = React.useState(true);
 
-    // Debug: Log thumbnail URL
-    React.useEffect(() => {
-      console.log("Thumbnail URL:", thumbnail);
-    }, [thumbnail]);
-
     return (
       <Pressable
         onPress={onPress}
@@ -50,13 +45,11 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
                 source={{ uri: thumbnail }}
                 style={{ width: "100%", height: 200 }}
                 contentFit="cover"
-                onError={(error) => {
-                  console.log("Image load error:", error);
+                onError={() => {
                   setImageError(true);
                   setImageLoading(false);
                 }}
                 onLoad={() => {
-                  console.log("Image loaded successfully");
                   setImageLoading(false);
                 }}
                 cachePolicy="memory-disk"

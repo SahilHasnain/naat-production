@@ -123,15 +123,11 @@ export function useNaats(
           err instanceof Error ? err : new Error("Failed to load naats")
         );
 
-        // Try to use cached data as fallback
-        const allCachedData: Naat[] = [];
-        filterCache.forEach((cachedNaats) => {
-          allCachedData.push(...cachedNaats);
-        });
-
-        if (allCachedData.length > 0 && naats.length === 0) {
-          setNaats(allCachedData);
-        }
+        // Don't modify naats array on error - keep existing data
+        // This prevents thumbnails from disappearing when network fails
+        console.log(
+          "[useNaats] Error loading more naats, keeping existing data"
+        );
       })
       .finally(() => {
         setLoading(false);
