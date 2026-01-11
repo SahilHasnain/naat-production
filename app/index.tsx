@@ -30,7 +30,7 @@ export default function HomeScreen() {
   const [isVideoFallback, setIsVideoFallback] = useState(false);
 
   // Filter state
-  const [selectedFilter, setSelectedFilter] = useState<SortOption>("latest");
+  const [selectedFilter, setSelectedFilter] = useState<SortOption>("forYou");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     null
   );
@@ -106,6 +106,9 @@ export default function HomeScreen() {
       const naat = displayData.find((n) => n.$id === naatId);
       if (!naat) return;
 
+      // Track watch history
+      await storageService.addToWatchHistory(naat.$id);
+
       try {
         // Check saved playback mode preference
         const savedMode = await storageService.loadPlaybackMode();
@@ -133,6 +136,9 @@ export default function HomeScreen() {
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(
     async (naat: Naat) => {
+      // Track watch history
+      await storageService.addToWatchHistory(naat.$id);
+
       // Fallback to video if no audio ID
       if (!naat.audioId) {
         console.log("No audio ID available, falling back to video mode");

@@ -10,12 +10,19 @@ const STORAGE_KEYS = {
   PLAYBACK_PREFIX: "@naat_playback_",
   RECENT_POSITIONS: "@naat_recent_positions",
   PLAYBACK_MODE: "@naat_playback_mode",
+  WATCH_HISTORY: "@naat_watch_history",
+  FOR_YOU_SESSION: "@naat_for_you_session",
 } as const;
 
 /**
  * Maximum number of recent positions to maintain
  */
 const MAX_RECENT_POSITIONS = 10;
+
+/**
+ * Maximum number of watch history items to maintain
+ */
+const MAX_WATCH_HISTORY = 100;
 
 /**
  * Service for managing local storage operations
@@ -263,6 +270,118 @@ export class StorageService implements IStorageService {
         ErrorCode.STORAGE_ERROR,
         true
       );
+    }
+  }
+
+  /**
+   * Add a naat to watch history
+   * @param naatId - Unique identifier for the naat
+   * @throws AppError if storage operation fails
+   */
+  async addToWatchHistory(naatId: string): Promise<void> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.WATCH_HISTORY);
+      let history: string[] = data ? JSON.parse(data) : [];
+
+      // Remove if already exists (to update timestamp)
+      history = history.filter((id) => id !== naatId);
+
+      // Add to beginning
+      history.unshift(naatId);
+
+      // Limit to MAX_WATCH_HISTORY
+      if (history.length > MAX_WATCH_HISTORY) {
+        history = history.slice(0, MAX_WATCH_HISTORY);
+      }
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY,
+        JSON.stringify(history)
+      );
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "addToWatchHistory",
+        naatId,
+      });
+      // Don't throw - this is a non-critical operation
+    }
+  }
+
+  /**
+   * Get watch history
+   * @returns Array of naat IDs in watch history
+   */
+  async getWatchHistory(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.WATCH_HISTORY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getWatchHistory",
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Save For You session order
+   * @param naatIds - Array of naat IDs in session order
+   */
+  async saveForYouSession(naatIds: string[]): Promise<void> {
+    try {
+      const sessionData = {
+        naatIds,
+        timestamp: Date.now(),
+      };
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.FOR_YOU_SESSION,
+        JSON.stringify(sessionData)
+      );
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "saveForYouSession",
+      });
+      // Don't throw - this is a non-critical operation
+    }
+  }
+
+  /**
+   * Get For You session order (if still valid)
+   * @returns Array of naat IDs or null if session expired
+   */
+  async getForYouSession(): Promise<string[] | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.FOR_YOU_SESSION);
+      if (!data) return null;
+
+      const sessionData = JSON.parse(data);
+      const age = Date.now() - sessionData.timestamp;
+
+      // Session expires after 1 hour
+      if (age > 60 * 60 * 1000) {
+        await AsyncStorage.removeItem(STORAGE_KEYS.FOR_YOU_SESSION);
+        return null;
+      }
+
+      return sessionData.naatIds;
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getForYouSession",
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Clear For You session
+   */
+  async clearForYouSession(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.FOR_YOU_SESSION);
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "clearForYouSession",
+      });
     }
   }
 }

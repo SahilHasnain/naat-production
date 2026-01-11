@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-export type SortOption = "latest" | "popular" | "oldest";
+export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 
 interface SortFilterBarProps {
   selectedFilter: SortOption;
@@ -13,6 +13,7 @@ const SortFilterBar: React.FC<SortFilterBarProps> = ({
   onFilterChange,
 }) => {
   const filters: { value: SortOption; label: string; icon: string }[] = [
+    { value: "forYou", label: "For You", icon: "✨" },
     { value: "latest", label: "Latest", icon: "🆕" },
     { value: "popular", label: "Popular", icon: "🔥" },
     { value: "oldest", label: "Oldest", icon: "📅" },

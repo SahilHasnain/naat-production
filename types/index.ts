@@ -18,7 +18,7 @@ export interface Naat {
 }
 
 // Sort option type for filtering naats
-export type SortOption = "latest" | "popular" | "oldest";
+export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 
 // Sort option type for downloads
 export type DownloadSortOption =
