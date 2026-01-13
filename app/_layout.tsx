@@ -111,6 +111,15 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="history"
+          options={{
+            title: "History",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="time-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="downloads"
           options={{
             title: "Downloads",

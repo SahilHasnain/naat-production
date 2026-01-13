@@ -44,27 +44,37 @@ async function checkAdbDevices() {
 
 async function checkTermuxApi() {
   try {
-    const { stdout } = await execAsync(
-      'adb shell "which termux-clipboard-get"'
+    // Try to get clipboard content - if it works, Termux API is installed
+    const { stdout, stderr } = await execAsync(
+      'adb shell "am broadcast --user 0 -a com.termux.RUN_COMMAND --es command termux-clipboard-get 2>&1"'
     );
-    if (stdout.trim()) {
+
+    // Check if command executed (even if clipboard is empty)
+    if (!stderr || !stderr.includes("not found")) {
       console.log("✅ Termux API is installed on phone");
       return true;
     }
   } catch {
-    console.log("❌ Termux API is NOT installed on phone");
-    console.log("   Install: pkg install termux-api");
-    return false;
+    // Ignore errors, will show message below
   }
+
+  console.log("❌ Termux API is NOT installed on phone");
+  console.log("   Install in Termux: pkg install termux-api");
+  console.log("   Also install Termux:API app from store");
+  return false;
 }
 
 async function testClipboard() {
   try {
     const testText = "Test from laptop - " + Date.now();
-    await execAsync(`adb shell "echo '${testText}' | termux-clipboard-set"`);
-    const { stdout } = await execAsync('adb shell "termux-clipboard-get"');
+    await execAsync(
+      `adb shell "am broadcast --user 0 -a com.termux.RUN_COMMAND --es command 'echo ${testText} | termux-clipboard-set' 2>/dev/null"`
+    );
+    const { stdout } = await execAsync(
+      'adb shell "am broadcast --user 0 -a com.termux.RUN_COMMAND --es command termux-clipboard-get 2>/dev/null"'
+    );
 
-    if (stdout.trim() === testText) {
+    if (stdout.includes(testText)) {
       console.log("✅ Clipboard sync is working!");
       return true;
     } else {

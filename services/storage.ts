@@ -324,6 +324,24 @@ export class StorageService implements IStorageService {
   }
 
   /**
+   * Clear all watch history
+   */
+  async clearWatchHistory(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY);
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "clearWatchHistory",
+      });
+      throw new AppError(
+        "Failed to clear watch history.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
+    }
+  }
+
+  /**
    * Save For You session order
    * @param naatIds - Array of naat IDs in session order
    */

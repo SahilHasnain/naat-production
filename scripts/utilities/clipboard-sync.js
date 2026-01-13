@@ -84,7 +84,10 @@ async function checkDevice() {
  */
 async function getPhoneClipboard() {
   try {
-    const { stdout } = await execAsync('adb shell "termux-clipboard-get"');
+    // Run termux-clipboard-get through am (Activity Manager) to execute in Termux context
+    const { stdout } = await execAsync(
+      'adb shell "am broadcast --user 0 -a com.termux.RUN_COMMAND --es command termux-clipboard-get 2>/dev/null || termux-clipboard-get 2>/dev/null"'
+    );
     return stdout.trim();
   } catch (error) {
     throw new Error(`Failed to get phone clipboard: ${error.message}`);
@@ -97,8 +100,15 @@ async function getPhoneClipboard() {
 async function setPhoneClipboard(content) {
   try {
     // Escape content for shell
-    const escaped = content.replace(/"/g, '\\"').replace(/\$/g, "\\$");
-    await execAsync(`adb shell "echo \\"${escaped}\\" | termux-clipboard-set"`);
+    const escaped = content
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, "\\$")
+      .replace(/`/g, "\\`");
+    // Use am broadcast to run in Termux context
+    await execAsync(
+      `adb shell "am broadcast --user 0 -a com.termux.RUN_COMMAND --es command 'echo \\"${escaped}\\" | termux-clipboard-set' 2>/dev/null || echo \\"${escaped}\\" | termux-clipboard-set 2>/dev/null"`
+    );
   } catch (error) {
     throw new Error(`Failed to set phone clipboard: ${error.message}`);
   }

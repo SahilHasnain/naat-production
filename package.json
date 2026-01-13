@@ -22,9 +22,9 @@
     "mobile:control": "scrcpy",
     "mobile:wireless": "scrcpy --bit-rate 2M --max-size 1024",
     "mobile:test": "node scripts/utilities/test-mobile-connection.js",
-    "clipboard:push": "node scripts/utilities/clipboard-sync.js push",
-    "clipboard:pull": "node scripts/utilities/clipboard-sync.js pull",
-    "clipboard:watch": "node scripts/utilities/clipboard-sync.js watch",
+    "clipboard:push": "node scripts/utilities/clipboard-sync-simple.js push",
+    "clipboard:pull": "node scripts/utilities/clipboard-sync-simple.js pull",
+    "clipboard:watch": "node scripts/utilities/clipboard-sync-simple.js watch",
     "test": "jest",
     "test:watch": "jest --watch"
   },
