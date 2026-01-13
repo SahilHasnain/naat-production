@@ -105,19 +105,31 @@ async function findYtDlp() {
 }
 
 /**
+ * Find Node.js executable path
+ */
+async function findNodePath() {
+  try {
+    const { stdout } = await execAsync("which node");
+    return stdout.trim();
+  } catch (error) {
+    return "node"; // Fallback to just "node"
+  }
+}
+
+/**
  * Download audio using yt-dlp (Termux version using exec)
  */
-async function downloadAudio(youtubeId, title, ytdlpPath) {
+async function downloadAudio(youtubeId, title, ytdlpPath, nodePath) {
   const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").substring(0, 50);
   const outputPath = join(TEMP_DIR, `${youtubeId}_${sanitizedTitle}.m4a`);
 
   console.log(`  Downloading: ${title}`);
   console.log(`  YouTube ID: ${youtubeId}`);
 
-  const command = `${ytdlpPath} --js-runtimes node -f "bestaudio[ext=m4a]/bestaudio" --extract-audio --audio-format m4a --audio-quality 128K -o "${outputPath}" --no-playlist "https://www.youtube.com/watch?v=${youtubeId}"`;
+  const command = `${ytdlpPath} --js-runtimes node:${nodePath} -f "bestaudio[ext=m4a]/bestaudio" --extract-audio --audio-format m4a --audio-quality 128K -o "${outputPath}" --no-playlist "https://www.youtube.com/watch?v=${youtubeId}"`;
 
   try {
-    const { stdout, stderr } = await execAsync(command, {
+    const { stderr } = await execAsync(command, {
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     });
 
@@ -189,14 +201,19 @@ function cleanupTempFile(filePath) {
 /**
  * Process a single naat
  */
-async function processNaat(naat, index, total, ytdlpPath) {
+async function processNaat(naat, index, total, ytdlpPath, nodePath) {
   console.log(`\n[${index + 1}/${total}] Processing: ${naat.title}`);
 
   let tempFilePath = null;
 
   try {
     // Download audio
-    tempFilePath = await downloadAudio(naat.youtubeId, naat.title, ytdlpPath);
+    tempFilePath = await downloadAudio(
+      naat.youtubeId,
+      naat.title,
+      ytdlpPath,
+      nodePath
+    );
 
     if (!testMode) {
       // Upload to Appwrite
@@ -286,6 +303,11 @@ async function main() {
   console.log("🔍 Locating yt-dlp...");
   const ytdlpPath = await findYtDlp();
 
+  // Find Node.js executable
+  console.log("🔍 Locating Node.js...");
+  const nodePath = await findNodePath();
+  console.log(`✓ Found Node.js at: ${nodePath}`);
+
   // Ensure temp directory exists
   ensureTempDir();
 
@@ -301,7 +323,13 @@ async function main() {
   // Process each naat
   const results = [];
   for (let i = 0; i < naats.length; i++) {
-    const result = await processNaat(naats[i], i, naats.length, ytdlpPath);
+    const result = await processNaat(
+      naats[i],
+      i,
+      naats.length,
+      ytdlpPath,
+      nodePath
+    );
     results.push(result);
 
     // Small delay between downloads
