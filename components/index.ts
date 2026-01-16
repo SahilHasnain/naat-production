@@ -1,4 +1,3 @@
-export { default as AudioPlayer } from "./AudioPlayer";
 export { default as BackToTopButton } from "./BackToTopButton";
 export { default as ChannelFilterBar } from "./ChannelFilterBar";
 export { default as DownloadedAudioCard } from "./DownloadedAudioCard";

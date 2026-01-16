@@ -54,6 +54,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   // Check if audio is downloaded when currentAudio changes
   useEffect(() => {
@@ -177,8 +178,142 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
           <Text className="text-sm text-neutral-400">Now Playing</Text>
 
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+            className="h-10 w-10 items-center justify-center"
+            accessibilityRole="button"
+            accessibilityLabel="Options menu"
+          >
+            <Ionicons name="ellipsis-vertical" size={24} color="white" />
+          </TouchableOpacity>
         </View>
+
+        {/* Options Menu with Overlay */}
+        {showOptionsMenu && (
+          <>
+            {/* Transparent Overlay */}
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => setShowOptionsMenu(false)}
+              className="absolute inset-0 z-40"
+              accessibilityRole="button"
+              accessibilityLabel="Close menu"
+            />
+
+            {/* Menu */}
+            <View className="absolute top-16 right-5 bg-neutral-800 rounded-lg shadow-lg z-50 min-w-[200px]">
+              {/* Switch to Video */}
+              {currentAudio.youtubeId && onSwitchToVideo && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowOptionsMenu(false);
+                    onSwitchToVideo();
+                  }}
+                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="videocam" size={20} color="white" />
+                  <Text className="text-white text-base">Switch to Video</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Download/Delete */}
+              {showDownloadButton && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowOptionsMenu(false);
+                    if (isDownloaded) {
+                      handleDeleteDownload();
+                    } else if (isDownloading) {
+                      Alert.alert(
+                        "Download in Progress",
+                        `Downloading... ${Math.round(downloadProgress * 100)}%`,
+                        [{ text: "OK" }]
+                      );
+                    } else {
+                      handleDownload();
+                    }
+                  }}
+                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name={
+                      isDownloaded
+                        ? "checkmark-circle"
+                        : isDownloading
+                          ? "hourglass"
+                          : "download"
+                    }
+                    size={20}
+                    color={
+                      isDownloaded
+                        ? "#22c55e"
+                        : isDownloading
+                          ? "#3b82f6"
+                          : "white"
+                    }
+                  />
+                  <Text className="text-white text-base">
+                    {isDownloaded
+                      ? "Delete Download"
+                      : isDownloading
+                        ? `Downloading ${Math.round(downloadProgress * 100)}%`
+                        : "Download"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Repeat */}
+              <TouchableOpacity
+                onPress={() => {
+                  toggleRepeat();
+                  setShowOptionsMenu(false);
+                }}
+                className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name="repeat"
+                  size={20}
+                  color={isRepeatEnabled ? colors.accent.primary : "white"}
+                />
+                <Text
+                  className="text-base"
+                  style={{
+                    color: isRepeatEnabled ? colors.accent.primary : "white",
+                  }}
+                >
+                  Repeat {isRepeatEnabled ? "(On)" : "(Off)"}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Autoplay */}
+              <TouchableOpacity
+                onPress={() => {
+                  toggleAutoplay();
+                  setShowOptionsMenu(false);
+                }}
+                className="flex-row items-center gap-3 px-4 py-3"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name="play-forward"
+                  size={20}
+                  color={isAutoplayEnabled ? colors.accent.primary : "white"}
+                />
+                <Text
+                  className="text-base"
+                  style={{
+                    color: isAutoplayEnabled ? colors.accent.primary : "white",
+                  }}
+                >
+                  Autoplay {isAutoplayEnabled ? "(On)" : "(Off)"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {isLoading ? (
           <View className="flex-1 items-center justify-center">
@@ -241,170 +376,52 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </View>
               </View>
 
-              {/* Playback Controls Row */}
-              <View className="mb-6">
-                {/* Main Controls */}
-                <View className="flex-row items-center justify-center gap-4 mb-4">
-                  {/* Seek Backward 10s */}
-                  <TouchableOpacity
-                    onPress={seekBackward}
-                    className="h-14 w-14 items-center justify-center relative"
-                    accessibilityLabel="Seek backward 10 seconds"
-                    accessibilityRole="button"
-                  >
-                    <Ionicons
-                      name="refresh"
-                      size={32}
-                      color="white"
-                      style={{ transform: [{ scaleX: -1 }] }}
-                    />
-                    <Text className="absolute text-xs font-bold text-white">
-                      10
-                    </Text>
-                  </TouchableOpacity>
+              {/* Main Playback Controls - Clean and Simple */}
+              <View className="flex-row items-center justify-center gap-8">
+                {/* Seek Backward 10s */}
+                <TouchableOpacity
+                  onPress={seekBackward}
+                  className="h-14 w-14 items-center justify-center relative"
+                  accessibilityLabel="Seek backward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="refresh"
+                    size={40}
+                    color="white"
+                    style={{ transform: [{ scaleX: -1 }] }}
+                  />
+                  <Text className="absolute text-xs font-bold text-white">
+                    10
+                  </Text>
+                </TouchableOpacity>
 
-                  {/* Switch to Video Button */}
-                  {currentAudio.youtubeId && onSwitchToVideo && (
-                    <TouchableOpacity
-                      onPress={onSwitchToVideo}
-                      className="h-14 w-14 items-center justify-center rounded-full bg-neutral-700"
-                      accessibilityLabel="Switch to video mode"
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name="videocam" size={24} color="white" />
-                    </TouchableOpacity>
-                  )}
+                {/* Play/Pause Button */}
+                <TouchableOpacity
+                  onPress={togglePlayPause}
+                  className="h-20 w-20 items-center justify-center rounded-full bg-white"
+                  accessibilityRole="button"
+                  accessibilityLabel={isPlaying ? "Pause" : "Play"}
+                >
+                  <Ionicons
+                    name={isPlaying ? "pause" : "play"}
+                    size={40}
+                    color={colors.background.primary}
+                  />
+                </TouchableOpacity>
 
-                  {/* Play/Pause Button - Center */}
-                  <TouchableOpacity
-                    onPress={togglePlayPause}
-                    className="h-20 w-20 items-center justify-center rounded-full bg-white"
-                    accessibilityRole="button"
-                    accessibilityLabel={isPlaying ? "Pause" : "Play"}
-                  >
-                    <Ionicons
-                      name={isPlaying ? "pause" : "play"}
-                      size={40}
-                      color={colors.background.primary}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Download/Delete Button */}
-                  {showDownloadButton && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (isDownloaded) {
-                          handleDeleteDownload();
-                        } else if (isDownloading) {
-                          Alert.alert(
-                            "Download in Progress",
-                            `Downloading... ${Math.round(downloadProgress * 100)}%`,
-                            [{ text: "OK" }]
-                          );
-                        } else {
-                          handleDownload();
-                        }
-                      }}
-                      className={`h-14 w-14 items-center justify-center rounded-full ${
-                        isDownloaded
-                          ? "bg-green-600"
-                          : isDownloading
-                            ? "bg-blue-600"
-                            : "bg-neutral-700"
-                      }`}
-                      accessibilityLabel={
-                        isDownloaded
-                          ? "Downloaded - Tap to delete"
-                          : isDownloading
-                            ? "Downloading"
-                            : "Download for offline"
-                      }
-                      accessibilityRole="button"
-                    >
-                      {isDownloading ? (
-                        <Ionicons name="hourglass" size={24} color="white" />
-                      ) : (
-                        <Ionicons
-                          name={isDownloaded ? "checkmark-circle" : "download"}
-                          size={24}
-                          color="white"
-                        />
-                      )}
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Seek Forward 10s */}
-                  <TouchableOpacity
-                    onPress={seekForward}
-                    className="h-14 w-14 items-center justify-center relative"
-                    accessibilityLabel="Seek forward 10 seconds"
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="refresh" size={32} color="white" />
-                    <Text className="absolute text-xs font-bold text-white">
-                      10
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Repeat and Autoplay Controls */}
-                <View className="flex-row items-center justify-center gap-8">
-                  {/* Repeat Button */}
-                  <TouchableOpacity
-                    onPress={toggleRepeat}
-                    className="flex-row items-center gap-2 px-4 py-2 rounded-full bg-neutral-800"
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isRepeatEnabled ? "Repeat enabled" : "Repeat disabled"
-                    }
-                  >
-                    <Ionicons
-                      name="repeat"
-                      size={20}
-                      color={isRepeatEnabled ? colors.accent.primary : "white"}
-                    />
-                    <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color: isRepeatEnabled
-                          ? colors.accent.primary
-                          : "white",
-                      }}
-                    >
-                      Repeat
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Autoplay Button */}
-                  <TouchableOpacity
-                    onPress={toggleAutoplay}
-                    className="flex-row items-center gap-2 px-4 py-2 rounded-full bg-neutral-800"
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isAutoplayEnabled
-                        ? "Autoplay enabled"
-                        : "Autoplay disabled"
-                    }
-                  >
-                    <Ionicons
-                      name="play-forward"
-                      size={20}
-                      color={
-                        isAutoplayEnabled ? colors.accent.primary : "white"
-                      }
-                    />
-                    <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color: isAutoplayEnabled
-                          ? colors.accent.primary
-                          : "white",
-                      }}
-                    >
-                      Autoplay
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Seek Forward 10s */}
+                <TouchableOpacity
+                  onPress={seekForward}
+                  className="h-14 w-14 items-center justify-center relative"
+                  accessibilityLabel="Seek forward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="refresh" size={40} color="white" />
+                  <Text className="absolute text-xs font-bold text-white">
+                    10
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
