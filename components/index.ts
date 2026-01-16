@@ -7,6 +7,7 @@ export { default as DownloadsHeader } from "./DownloadsHeader";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as FilterBar } from "./FilterBar";
+export { default as HistoryCard } from "./HistoryCard";
 export { default as NaatCard } from "./NaatCard";
 export { default as SearchBar } from "./SearchBar";
 export { SkeletonDownloadCard, SkeletonLoader } from "./SkeletonLoader";
