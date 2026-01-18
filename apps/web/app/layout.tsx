@@ -1,4 +1,6 @@
+import { MiniPlayer } from "@/components/MiniPlayer";
 import { Navigation } from "@/components/Navigation";
+import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -15,8 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-gray-50">
-        <Navigation />
-        <main>{children}</main>
+        <AudioPlayerProvider>
+          <Navigation />
+          <main>{children}</main>
+          <MiniPlayer />
+        </AudioPlayerProvider>
       </body>
     </html>
   );
