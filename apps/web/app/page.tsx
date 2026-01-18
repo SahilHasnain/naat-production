@@ -1,43 +1,188 @@
-import { Hero } from "@/components/Hero";
+"use client";
+
+import { ChannelFilter } from "@/components/ChannelFilter";
 import { NaatGrid } from "@/components/NaatGrid";
+import { SearchBar } from "@/components/SearchBar";
+import { SortFilter, type SortOption } from "@/components/SortFilter";
 import { appwriteService } from "@/lib/appwrite";
-import type { Naat } from "@naat-collection/shared";
+import type { Channel, Naat } from "@naat-collection/shared";
+import { useEffect, useState } from "react";
 
-export default async function Home() {
-  let naats: Naat[] = [];
-  let error: string | null = null;
+export default function Home() {
+  const [naats, setNaats] = useState<Naat[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    null,
+  );
+  const [selectedSort, setSelectedSort] = useState<SortOption>("latest");
+  const [loading, setLoading] = useState(true);
+  const [channelsLoading, setChannelsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  try {
-    naats = await appwriteService.getNaats(20, 0, "latest");
-  } catch (err) {
-    error = err instanceof Error ? err.message : "Failed to load naats";
-    console.error("Error fetching naats:", err);
-  }
+  // Detect screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Fetch channels on mount
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        const channelsData = await appwriteService.getChannels();
+        setChannels(channelsData);
+      } catch (err) {
+        console.error("Error fetching channels:", err);
+      } finally {
+        setChannelsLoading(false);
+      }
+    };
+    fetchChannels();
+  }, []);
+
+  // Fetch naats when filters change
+  useEffect(() => {
+    const fetchNaats = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let naatsData: Naat[];
+
+        if (searchQuery.trim()) {
+          // Search mode
+          naatsData = await appwriteService.searchNaats(
+            searchQuery,
+            selectedChannelId,
+          );
+        } else {
+          // Browse mode with sort
+          const sortBy = selectedSort === "forYou" ? "latest" : selectedSort;
+          naatsData = await appwriteService.getNaats(
+            20,
+            0,
+            sortBy,
+            selectedChannelId,
+          );
+        }
+
+        setNaats(naatsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load naats");
+        console.error("Error fetching naats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNaats();
+  }, [searchQuery, selectedChannelId, selectedSort]);
+
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <>
-      <Hero />
-
-      <div className="max-w-7xl mx-auto py-8">
-        <header className="mb-8 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold mb-2">Latest Naats</h2>
-          <p className="text-neutral-400">Recently uploaded devotional songs</p>
-        </header>
-
-        {error && (
-          <div className="bg-accent-error/10 border border-accent-error/20 text-accent-error px-4 py-3 rounded mb-6 mx-4 sm:mx-6 lg:mx-8">
-            {error}
+    <div className="min-h-screen bg-gray-900">
+      {/* Top Bar - Mobile */}
+      {isMobile && (
+        <>
+          <div className="bg-gray-800 border-b border-gray-700 p-4">
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              isMobile={true}
+            />
           </div>
-        )}
 
-        <NaatGrid naats={naats} />
+          {!isSearching && (
+            <>
+              <ChannelFilter
+                channels={channels}
+                selectedChannelId={selectedChannelId}
+                onChannelChange={setSelectedChannelId}
+                loading={channelsLoading}
+                isMobile={true}
+              />
+              <SortFilter
+                selectedSort={selectedSort}
+                onSortChange={setSelectedSort}
+                isMobile={true}
+              />
+            </>
+          )}
+        </>
+      )}
 
-        {naats.length === 0 && !error && (
-          <div className="text-center py-12 px-4">
-            <p className="text-neutral-400">No naats found</p>
+      {/* Top Bar - Desktop */}
+      {!isMobile && (
+        <div className="bg-gray-800 border-b border-gray-700 p-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Search Bar */}
+            <div className="mb-4">
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                isMobile={false}
+              />
+            </div>
+
+            {/* Filters Row */}
+            {!isSearching && (
+              <div className="flex items-center justify-between gap-4">
+                <ChannelFilter
+                  channels={channels}
+                  selectedChannelId={selectedChannelId}
+                  onChannelChange={setSelectedChannelId}
+                  loading={channelsLoading}
+                  isMobile={false}
+                />
+                <SortFilter
+                  selectedSort={selectedSort}
+                  onSortChange={setSelectedSort}
+                  isMobile={false}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+            </div>
+          ) : naats.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-400 text-lg">
+                {isSearching
+                  ? "No naats found matching your search."
+                  : "No naats available yet. Check back soon!"}
+              </p>
+            </div>
+          ) : (
+            <NaatGrid
+              naats={naats}
+              channelId={selectedChannelId}
+              sortOption={selectedSort === "forYou" ? "latest" : selectedSort}
+              searchQuery={searchQuery}
+            />
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }

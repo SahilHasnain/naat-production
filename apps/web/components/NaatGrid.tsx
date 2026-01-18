@@ -8,7 +8,7 @@ import { NaatCard } from "./NaatCard";
 interface NaatGridProps {
   naats: Naat[];
   channelId?: string | null;
-  sortOption?: "latest" | "popular" | "oldest";
+  sortOption?: "forYou" | "latest" | "popular" | "oldest";
   searchQuery?: string;
 }
 
@@ -35,8 +35,9 @@ export function NaatGrid({
 
     setIsLoading(true);
     try {
+      const sortBy = sortOption === "forYou" ? "latest" : sortOption;
       const response = await fetch(
-        `/api/naats?limit=20&offset=${naats.length}&sortBy=${sortOption}${
+        `/api/naats?limit=20&offset=${naats.length}&sortBy=${sortBy}${
           channelId ? `&channelId=${channelId}` : ""
         }${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}`,
       );
@@ -107,7 +108,7 @@ export function NaatGrid({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-6 lg:px-8 transition-all duration-200 ease-out">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-200 ease-out">
         {naats.map((naat) => (
           <NaatCard key={naat.$id} naat={naat} onPlay={handlePlay} />
         ))}
@@ -119,13 +120,13 @@ export function NaatGrid({
       {/* Loading Spinner */}
       {isLoading && (
         <div className="flex justify-center py-8">
-          <div className="w-10 h-10 border-4 border-neutral-700 border-t-primary-600 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin" />
         </div>
       )}
 
       {/* End of Results Message */}
       {!hasMore && naats.length > 0 && (
-        <div className="text-center py-8 text-neutral-400 text-sm">
+        <div className="text-center py-8 text-gray-400 text-sm">
           No more naats to load
         </div>
       )}
