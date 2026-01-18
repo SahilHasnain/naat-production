@@ -34,11 +34,16 @@ export function NaatGrid({
   const loadMore = async () => {
     if (isLoading || !hasMore) return;
 
+    // For You algorithm doesn't support pagination - all results are pre-loaded
+    if (sortOption === "forYou") {
+      setHasMore(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const sortBy = sortOption === "forYou" ? "latest" : sortOption;
       const response = await fetch(
-        `/api/naats?limit=20&offset=${naats.length}&sortBy=${sortBy}${
+        `/api/naats?limit=20&offset=${naats.length}&sortBy=${sortOption}${
           channelId ? `&channelId=${channelId}` : ""
         }${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}`,
       );
@@ -92,6 +97,9 @@ export function NaatGrid({
     if (!naat) return;
 
     try {
+      // Track watch history
+      await storage.addToWatchHistory(naatId);
+
       // Fetch audio URL from storage
       const response = await appwriteService.getAudioUrl(naat.audioId);
 

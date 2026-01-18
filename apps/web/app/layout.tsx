@@ -1,4 +1,5 @@
-import { MiniPlayer } from "@/components/MiniPlayer";
+import { DevScreenSize } from "@/components/DevScreenSize";
+import { ResponsivePlayer } from "@/components/ResponsivePlayer";
 import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -18,7 +19,8 @@ export default function RootLayout({
       <body className="antialiased bg-gray-900">
         <AudioPlayerProvider>
           <main>{children}</main>
-          <MiniPlayer />
+          <ResponsivePlayer />
+          <DevScreenSize />
         </AudioPlayerProvider>
       </body>
     </html>

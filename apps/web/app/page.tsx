@@ -5,6 +5,7 @@ import { NaatGrid } from "@/components/NaatGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { SortFilter, type SortOption } from "@/components/SortFilter";
 import { appwriteService } from "@/lib/appwrite";
+import { getForYouFeed } from "@/lib/forYouAlgorithm";
 import type { Channel, Naat } from "@naat-collection/shared";
 import { useEffect, useState } from "react";
 
@@ -15,7 +16,7 @@ export default function Home() {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     null,
   );
-  const [selectedSort, setSelectedSort] = useState<SortOption>("latest");
+  const [selectedSort, setSelectedSort] = useState<SortOption>("forYou");
   const [loading, setLoading] = useState(true);
   const [channelsLoading, setChannelsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,13 +62,21 @@ export default function Home() {
             searchQuery,
             selectedChannelId,
           );
+        } else if (selectedSort === "forYou") {
+          // For You mode - fetch larger batch and apply algorithm
+          const allNaats = await appwriteService.getNaats(
+            1000,
+            0,
+            "latest",
+            selectedChannelId,
+          );
+          naatsData = await getForYouFeed(allNaats, selectedChannelId);
         } else {
           // Browse mode with sort
-          const sortBy = selectedSort === "forYou" ? "latest" : selectedSort;
           naatsData = await appwriteService.getNaats(
             20,
             0,
-            sortBy,
+            selectedSort,
             selectedChannelId,
           );
         }
@@ -182,7 +191,7 @@ export default function Home() {
             <NaatGrid
               naats={naats}
               channelId={selectedChannelId}
-              sortOption={selectedSort === "forYou" ? "latest" : selectedSort}
+              sortOption={selectedSort}
               searchQuery={searchQuery}
             />
           )}
