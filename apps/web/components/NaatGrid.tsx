@@ -97,9 +97,6 @@ export function NaatGrid({
     if (!naat) return;
 
     try {
-      // Track watch history
-      await storage.addToWatchHistory(naatId);
-
       // Fetch audio URL from storage
       const response = await appwriteService.getAudioUrl(naat.audioId);
 
