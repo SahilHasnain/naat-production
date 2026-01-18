@@ -7,9 +7,14 @@ import { useEffect, useRef, useState } from "react";
 interface FullPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSwitchToVideo?: () => void;
 }
 
-export function FullPlayerModal({ isOpen, onClose }: FullPlayerModalProps) {
+export function FullPlayerModal({
+  isOpen,
+  onClose,
+  onSwitchToVideo,
+}: FullPlayerModalProps) {
   const { state, actions } = useAudioPlayer();
   const modalRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -120,6 +125,7 @@ export function FullPlayerModal({ isOpen, onClose }: FullPlayerModalProps) {
     state.duration,
     state.volume,
     actions,
+    handleClose,
   ]);
 
   // Focus trap implementation
@@ -194,7 +200,7 @@ export function FullPlayerModal({ isOpen, onClose }: FullPlayerModalProps) {
       {/* Modal container */}
       <div
         ref={modalRef}
-        className="bg-neutral-800 rounded-2xl p-8 max-w-[480px] w-full relative"
+        className="bg-neutral-800 rounded-2xl p-8 max-w-[480px] w-full relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button in top-right corner */}
@@ -327,7 +333,7 @@ export function FullPlayerModal({ isOpen, onClose }: FullPlayerModalProps) {
         </div>
 
         {/* Volume control */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-6">
           {/* Mute toggle button */}
           <button
             onClick={() => {
@@ -383,6 +389,20 @@ export function FullPlayerModal({ isOpen, onClose }: FullPlayerModalProps) {
             aria-valuetext={`Volume ${Math.round(state.volume * 100)}%`}
           />
         </div>
+
+        {/* Watch Video Button */}
+        {onSwitchToVideo && state.currentAudio?.youtubeId && (
+          <button
+            onClick={onSwitchToVideo}
+            className="w-full flex items-center justify-center gap-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-2xl transition-colors mb-6 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-neutral-800"
+            aria-label="Switch to video mode"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+            </svg>
+            <span>Watch Video</span>
+          </button>
+        )}
 
         {/* Keyboard shortcuts hint */}
         <div className="mt-6 pt-6 border-t border-neutral-700">

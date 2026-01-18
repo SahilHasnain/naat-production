@@ -4,11 +4,13 @@ import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import Image from "next/image";
 import { useState } from "react";
 import { FullPlayerModal } from "./FullPlayerModal";
+import { VideoModal } from "./VideoModal";
 
 export function MiniPlayer() {
   const { state, actions } = useAudioPlayer();
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   // Don't render if no audio is loaded
   if (!state.currentAudio) {
@@ -24,6 +26,18 @@ export function MiniPlayer() {
     setIsModalOpen(true);
   };
 
+  // Handle switch to video
+  const handleSwitchToVideo = () => {
+    setIsModalOpen(false);
+    setIsVideoModalOpen(true);
+  };
+
+  // Handle switch back to audio
+  const handleSwitchToAudio = () => {
+    setIsVideoModalOpen(false);
+    setIsModalOpen(true);
+  };
+
   // Handle close with animation
   const handleClose = () => {
     setIsVisible(false);
@@ -32,6 +46,11 @@ export function MiniPlayer() {
       actions.stop();
     }, 300);
   };
+
+  // Build video URL from youtubeId
+  const videoUrl = state.currentAudio.youtubeId
+    ? `https://www.youtube.com/watch?v=${state.currentAudio.youtubeId}`
+    : "";
 
   return (
     <>
@@ -141,7 +160,20 @@ export function MiniPlayer() {
       <FullPlayerModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSwitchToVideo={handleSwitchToVideo}
       />
+
+      {/* Video Modal */}
+      {videoUrl && (
+        <VideoModal
+          isOpen={isVideoModalOpen}
+          onClose={() => setIsVideoModalOpen(false)}
+          videoUrl={videoUrl}
+          title={state.currentAudio.title}
+          channelName={state.currentAudio.channelName}
+          onSwitchToAudio={handleSwitchToAudio}
+        />
+      )}
     </>
   );
 }

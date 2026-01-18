@@ -120,20 +120,25 @@ export default function Home() {
 
       {/* Top Bar - Desktop */}
       {!isMobile && (
-        <div className="bg-gray-800 border-b border-gray-700 p-4">
-          <div className="max-w-7xl mx-auto">
-            {/* Search Bar */}
-            <div className="mb-4">
+        <>
+          {/* Search Header - Fixed */}
+          <div className="fixed top-0 left-0 right-0 bg-gray-800 border-b border-gray-700 py-4 px-6 z-50">
+            <div className="max-w-7xl mx-auto">
               <SearchBar
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 isMobile={false}
               />
             </div>
+          </div>
 
-            {/* Filters Row */}
-            {!isSearching && (
-              <div className="flex items-center justify-between gap-4">
+          {/* Spacer for fixed header */}
+          <div className="h-[73px]" />
+
+          {/* Filter Bar - Static positioned, compact */}
+          {!isSearching && (
+            <div className="bg-gray-800/95 border-b border-gray-700 py-2 px-6">
+              <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                 <ChannelFilter
                   channels={channels}
                   selectedChannelId={selectedChannelId}
@@ -147,9 +152,9 @@ export default function Home() {
                   isMobile={false}
                 />
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Content */}
