@@ -197,35 +197,23 @@ function shouldFilterVideo(channelId, title) {
     "uwaiz",
   ];
 
-  // Common spelling variations for "Raza"
-  const razaVariations = ["raza", "rza", "rezza", "reza"];
+  // Check if title contains "Owais" (any variation)
+  const hasOwais = owaisVariations.some((owais) => titleLower.includes(owais));
 
-  // Common spelling variations for "Qadri"
-  const qadriVariations = [
-    "qadri",
-    "qadry",
-    "qadiri",
-    "qaadri",
-    "kadri",
-    "kadry",
-  ];
+  // Check if title contains "Raza" (exact, no variations)
+  const hasRaza = titleLower.includes("raza");
 
-  // Check if title contains any combination of Owais + Raza
-  const hasOwaisRaza = owaisVariations.some((owais) =>
-    razaVariations.some(
-      (raza) => titleLower.includes(owais) && titleLower.includes(raza),
-    ),
-  );
+  // Check if title contains "Qadri" (exact, no variations)
+  const hasQadri = titleLower.includes("qadri");
 
-  // Check if title contains any combination of Owais + Qadri
-  const hasOwaisQadri = owaisVariations.some((owais) =>
-    qadriVariations.some(
-      (qadri) => titleLower.includes(owais) && titleLower.includes(qadri),
-    ),
-  );
+  // Must match one of these patterns:
+  // 1. Owais + Raza
+  // 2. Owais + Qadri
+  // 3. Owais + Raza + Qadri
+  const isOwaisVideo = hasOwais && (hasRaza || hasQadri);
 
-  // Filter out (return true) if it does NOT contain Owais names
-  return !(hasOwaisRaza || hasOwaisQadri);
+  // Filter out (return true) if it does NOT match the pattern
+  return !isOwaisVideo;
 }
 
 async function getAllExistingVideos(databases) {
