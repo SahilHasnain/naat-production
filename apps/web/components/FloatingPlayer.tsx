@@ -14,6 +14,7 @@ export function FloatingPlayer() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
 
   // Initialize position (bottom-right corner)
@@ -379,6 +380,98 @@ export function FloatingPlayer() {
       >
         <span className="text-sm font-medium text-white">Now Playing</span>
         <div className="flex items-center gap-2">
+          {/* Options menu button */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowOptionsMenu(!showOptionsMenu);
+              }}
+              className="w-8 h-8 rounded-full hover:bg-neutral-700 transition-colors flex items-center justify-center"
+              aria-label="Options menu"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-400"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+              </svg>
+            </button>
+
+            {/* Options Menu Dropdown */}
+            {showOptionsMenu && (
+              <>
+                {/* Overlay */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowOptionsMenu(false)}
+                />
+
+                {/* Menu */}
+                <div className="absolute top-full right-0 mt-2 bg-neutral-700 rounded-lg shadow-lg z-50 min-w-[180px]">
+                  {/* Repeat */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actions.toggleRepeat();
+                      setShowOptionsMenu(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 border-b border-neutral-600 w-full text-left hover:bg-neutral-600"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      style={{
+                        color: state.isRepeatEnabled ? "#3b82f6" : "white",
+                      }}
+                    >
+                      <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+                    </svg>
+                    <span
+                      className="text-sm"
+                      style={{
+                        color: state.isRepeatEnabled ? "#3b82f6" : "white",
+                      }}
+                    >
+                      Repeat {state.isRepeatEnabled ? "(On)" : "(Off)"}
+                    </span>
+                  </button>
+
+                  {/* Autoplay */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actions.toggleAutoplay();
+                      setShowOptionsMenu(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 w-full text-left hover:bg-neutral-600"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      style={{
+                        color: state.isAutoplayEnabled ? "#3b82f6" : "white",
+                      }}
+                    >
+                      <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
+                    </svg>
+                    <span
+                      className="text-sm"
+                      style={{
+                        color: state.isAutoplayEnabled ? "#3b82f6" : "white",
+                      }}
+                    >
+                      Autoplay {state.isAutoplayEnabled ? "(On)" : "(Off)"}
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={(e) => {
               e.stopPropagation();

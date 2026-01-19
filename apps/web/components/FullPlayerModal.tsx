@@ -160,6 +160,62 @@ export function FullPlayerModal({
                   <span className="text-white text-base">Switch to Video</span>
                 </button>
               )}
+
+              {/* Repeat */}
+              <button
+                onClick={() => {
+                  actions.toggleRepeat();
+                  setShowOptionsMenu(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 border-b border-neutral-700 w-full text-left hover:bg-neutral-700"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{
+                    color: state.isRepeatEnabled ? "#3b82f6" : "white",
+                  }}
+                >
+                  <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+                </svg>
+                <span
+                  className="text-base"
+                  style={{
+                    color: state.isRepeatEnabled ? "#3b82f6" : "white",
+                  }}
+                >
+                  Repeat {state.isRepeatEnabled ? "(On)" : "(Off)"}
+                </span>
+              </button>
+
+              {/* Autoplay */}
+              <button
+                onClick={() => {
+                  actions.toggleAutoplay();
+                  setShowOptionsMenu(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-neutral-700"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{
+                    color: state.isAutoplayEnabled ? "#3b82f6" : "white",
+                  }}
+                >
+                  <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
+                </svg>
+                <span
+                  className="text-base"
+                  style={{
+                    color: state.isAutoplayEnabled ? "#3b82f6" : "white",
+                  }}
+                >
+                  Autoplay {state.isAutoplayEnabled ? "(On)" : "(Off)"}
+                </span>
+              </button>
             </div>
           </>
         )}

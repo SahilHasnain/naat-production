@@ -29,6 +29,8 @@ export interface AudioPlayerState {
   duration: number;
   volume: number;
   isLoading: boolean;
+  isRepeatEnabled: boolean;
+  isAutoplayEnabled: boolean;
 }
 
 // Audio player actions interface
@@ -38,6 +40,9 @@ export interface AudioPlayerActions {
   seek: (position: number) => void;
   setVolume: (volume: number) => void;
   stop: () => void;
+  toggleRepeat: () => void;
+  toggleAutoplay: () => void;
+  setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
 }
 
 // Combined context type
@@ -56,6 +61,9 @@ interface AudioPlayerProviderProps {
   children: ReactNode;
 }
 
+const REPEAT_KEY = "audio_repeat_enabled";
+const AUTOPLAY_KEY = "audio_autoplay_enabled";
+
 export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
   // State management
   const [state, setState] = useState<AudioPlayerState>({
@@ -65,10 +73,52 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     duration: 0,
     volume: 1,
     isLoading: false,
+    isRepeatEnabled: false,
+    isAutoplayEnabled: false,
   });
 
   // Audio element ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Track if we're currently seeking to prevent position updates during seek
+  const isSeekingRef = useRef(false);
+
+  // Refs for repeat and autoplay to avoid stale closures
+  const isRepeatEnabledRef = useRef(false);
+  const isAutoplayEnabledRef = useRef(false);
+  const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Sync refs with state
+  useEffect(() => {
+    isRepeatEnabledRef.current = state.isRepeatEnabled;
+  }, [state.isRepeatEnabled]);
+
+  useEffect(() => {
+    isAutoplayEnabledRef.current = state.isAutoplayEnabled;
+  }, [state.isAutoplayEnabled]);
+
+  // Load saved preferences from localStorage
+  useEffect(() => {
+    const loadPreferences = () => {
+      try {
+        const repeatValue = localStorage.getItem(REPEAT_KEY);
+        const autoplayValue = localStorage.getItem(AUTOPLAY_KEY);
+
+        if (repeatValue !== null) {
+          const isRepeat = repeatValue === "true";
+          setState((prev) => ({ ...prev, isRepeatEnabled: isRepeat }));
+        }
+        if (autoplayValue !== null) {
+          const isAutoplay = autoplayValue === "true";
+          setState((prev) => ({ ...prev, isAutoplayEnabled: isAutoplay }));
+        }
+      } catch (err) {
+        console.error("Error loading preferences:", err);
+      }
+    };
+
+    loadPreferences();
+  }, []);
 
   // Initialize audio element with event listeners
   useEffect(() => {
@@ -86,9 +136,22 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
       setState((prev) => ({ ...prev, isPlaying: false }));
     };
 
+    // Event listener: onSeeking
+    const handleSeeking = () => {
+      isSeekingRef.current = true;
+    };
+
+    // Event listener: onSeeked
+    const handleSeeked = () => {
+      isSeekingRef.current = false;
+      // Update position after seek completes
+      setState((prev) => ({ ...prev, position: audio.currentTime }));
+    };
+
     // Event listener: onTimeUpdate
     const handleTimeUpdate = () => {
-      if (audio.currentTime !== undefined) {
+      // Only update position if we're not currently seeking
+      if (!isSeekingRef.current && audio.currentTime !== undefined) {
         setState((prev) => ({ ...prev, position: audio.currentTime }));
       }
     };
@@ -102,12 +165,38 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
 
     // Event listener: onEnded
     const handleEnded = () => {
+      console.log("Track finished");
       setState((prev) => ({
         ...prev,
         isPlaying: false,
-        position: 0,
       }));
-      audio.currentTime = 0;
+
+      // Use refs to get current values (not stale closure values)
+      const repeatEnabled = isRepeatEnabledRef.current;
+      const autoplayEnabled = isAutoplayEnabledRef.current;
+
+      console.log(
+        "Repeat enabled:",
+        repeatEnabled,
+        "Autoplay enabled:",
+        autoplayEnabled,
+      );
+
+      // Handle repeat
+      if (repeatEnabled && audio) {
+        console.log("Repeating track");
+        audio.currentTime = 0;
+        audio.play().catch((error) => {
+          console.error("Failed to repeat audio:", error);
+        });
+      } else if (autoplayEnabled && autoplayCallbackRef.current) {
+        // Handle autoplay - play next track
+        console.log("Autoplay triggered");
+        autoplayCallbackRef.current();
+      } else {
+        setState((prev) => ({ ...prev, position: 0 }));
+        audio.currentTime = 0;
+      }
     };
 
     // Event listener: onError
@@ -123,6 +212,8 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     // Attach event listeners
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
+    audio.addEventListener("seeking", handleSeeking);
+    audio.addEventListener("seeked", handleSeeked);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
@@ -132,6 +223,8 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     return () => {
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("seeking", handleSeeking);
+      audio.removeEventListener("seeked", handleSeeked);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
@@ -230,8 +323,9 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
   const seek = useCallback((position: number) => {
     if (!audioRef.current) return;
 
+    // Only set the audio element's currentTime
+    // The timeupdate event will handle updating the state
     audioRef.current.currentTime = position;
-    setState((prev) => ({ ...prev, position }));
   }, []);
 
   // Set volume
@@ -249,15 +343,53 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
 
     audioRef.current.pause();
     audioRef.current.currentTime = 0;
-    setState({
+    setState((prev) => ({
       currentAudio: null,
       isPlaying: false,
       position: 0,
       duration: 0,
-      volume: state.volume,
+      volume: prev.volume,
       isLoading: false,
+      isRepeatEnabled: prev.isRepeatEnabled,
+      isAutoplayEnabled: prev.isAutoplayEnabled,
+    }));
+  }, []);
+
+  // Toggle repeat
+  const toggleRepeat = useCallback(() => {
+    setState((prev) => {
+      const newValue = !prev.isRepeatEnabled;
+      try {
+        localStorage.setItem(REPEAT_KEY, String(newValue));
+        console.log("Repeat toggled:", newValue);
+      } catch (err) {
+        console.error("Error saving repeat preference:", err);
+      }
+      return { ...prev, isRepeatEnabled: newValue };
     });
-  }, [state.volume]);
+  }, []);
+
+  // Toggle autoplay
+  const toggleAutoplay = useCallback(() => {
+    setState((prev) => {
+      const newValue = !prev.isAutoplayEnabled;
+      try {
+        localStorage.setItem(AUTOPLAY_KEY, String(newValue));
+        console.log("Autoplay toggled:", newValue);
+      } catch (err) {
+        console.error("Error saving autoplay preference:", err);
+      }
+      return { ...prev, isAutoplayEnabled: newValue };
+    });
+  }, []);
+
+  // Set autoplay callback (to be called from screen with access to data)
+  const setAutoplayCallback = useCallback(
+    (callback: (() => Promise<void>) | null) => {
+      autoplayCallbackRef.current = callback;
+    },
+    [],
+  );
 
   // Actions object
   const actions: AudioPlayerActions = {
@@ -266,6 +398,9 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     seek,
     setVolume,
     stop,
+    toggleRepeat,
+    toggleAutoplay,
+    setAutoplayCallback,
   };
 
   // Context value
