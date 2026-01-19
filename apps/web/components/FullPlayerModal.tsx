@@ -266,6 +266,10 @@ export function FullPlayerModal({
                 max={state.duration || 100}
                 value={state.position}
                 onChange={(e) => actions.seek(parseFloat(e.target.value))}
+                style={{
+                  // @ts-ignore - CSS custom property
+                  "--progress": `${state.duration > 0 ? (state.position / state.duration) * 100 : 0}%`,
+                }}
                 className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer slider"
                 aria-label="Seek position"
               />

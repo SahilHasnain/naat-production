@@ -201,32 +201,44 @@ body {
 /* Custom Range Slider Styling */
 .slider::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: #1db954;
   cursor: pointer;
   transition: all 150ms ease-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(29, 185, 84, 0.15);
+}
+
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 8px rgba(29, 185, 84, 0.2);
 }
 
 .slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: #1db954;
   cursor: pointer;
   border: none;
   transition: all 150ms ease-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .slider::-moz-range-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(29, 185, 84, 0.15);
+}
+
+.slider::-moz-range-thumb:active {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 8px rgba(29, 185, 84, 0.2);
 }
 
 .slider::-webkit-slider-runnable-track {
@@ -237,20 +249,20 @@ body {
     #404040 var(--progress, 0%),
     #404040 100%
   );
-  height: 8px;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 .slider::-moz-range-track {
   background: #404040;
-  height: 8px;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 .slider::-moz-range-progress {
   background: #1db954;
-  height: 8px;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* Screen Reader Only Utility */
