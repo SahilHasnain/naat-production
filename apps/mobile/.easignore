@@ -28,10 +28,6 @@ coverage/
 *.md
 docs/
 
-# Git
-.git/
-.gitignore
-
 # IDE
 .vscode/
 .idea/
