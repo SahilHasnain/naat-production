@@ -98,10 +98,21 @@ export default function HomeScreen() {
     };
   }, [displayData, setAutoplayCallback]);
 
+  // Store naats in a ref to avoid recreating callbacks
+  const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
+
+  // Update the map when displayData changes
+  React.useEffect(() => {
+    naatsMapRef.current.clear();
+    displayData.forEach((naat) => {
+      naatsMapRef.current.set(naat.$id, naat);
+    });
+  }, [displayData]);
+
   // Handle naat selection - check preference and open accordingly
   const handleNaatPress = React.useCallback(
     async (naatId: string) => {
-      const naat = displayData.find((n) => n.$id === naatId);
+      const naat = naatsMapRef.current.get(naatId);
       if (!naat) return;
 
       // Track watch history
@@ -146,7 +157,7 @@ export default function HomeScreen() {
         });
       }
     },
-    [displayData, loadAudioDirectly, router],
+    [loadAudioDirectly, router],
   );
 
   // Load audio directly without opening video modal
