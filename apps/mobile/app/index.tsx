@@ -290,15 +290,6 @@ export default function HomeScreen() {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
-  // Optimize FlatList performance with getItemLayout
-  // Card height: ~200px (16:9 aspect ratio image) + 100px (content) + 20px (margin) = 320px
-  const ITEM_HEIGHT = 320;
-  const getItemLayout = (_data: any, index: number) => ({
-    length: ITEM_HEIGHT,
-    offset: ITEM_HEIGHT * index,
-    index,
-  });
-
   // Render individual naat card - memoized to prevent unnecessary re-renders
   const renderNaatCard = React.useCallback(
     ({ item }: { item: Naat }) => (
@@ -382,7 +373,6 @@ export default function HomeScreen() {
           data={displayData}
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
-          getItemLayout={getItemLayout}
           contentContainerStyle={{
             flexGrow: 1,
             paddingBottom: 50,
