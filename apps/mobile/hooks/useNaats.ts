@@ -31,7 +31,7 @@ export type SortOption = "forYou" | "latest" | "popular" | "oldest";
  */
 export function useNaats(
   channelId: string | null = null,
-  filter: SortOption = "forYou"
+  filter: SortOption = "forYou",
 ): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -59,7 +59,7 @@ export function useNaats(
     (channel: string | null, sortFilter: SortOption): string => {
       return `${channel || "all"}_${sortFilter}`;
     },
-    []
+    [],
   );
 
   const cacheKey = getCacheKey(channelId, filter);
@@ -128,15 +128,21 @@ export function useNaats(
         // Cache the page
         filterCache.set(offsetRef.current, pageNaats);
 
-        // Update state
-        setNaats((prev) => [...prev, ...pageNaats]);
+        // Update state - filter out duplicates
+        setNaats((prev) => {
+          const existingIds = new Set(prev.map((n) => n.$id));
+          const uniqueNewNaats = pageNaats.filter(
+            (n) => !existingIds.has(n.$id),
+          );
+          return [...prev, ...uniqueNewNaats];
+        });
         offsetRef.current += PAGE_SIZE;
         setHasMore(endIndex < cachedOrderedList.length);
         setLoading(false);
         isLoadingRef.current = false;
 
         console.log(
-          `[ForYou] Using cached list, displaying ${pageNaats.length} videos, ${cachedOrderedList.length - endIndex} remaining`
+          `[ForYou] Using cached list, displaying ${pageNaats.length} videos, ${cachedOrderedList.length - endIndex} remaining`,
         );
         return;
       }
@@ -149,7 +155,7 @@ export function useNaats(
         .getNaats(initialBatchSize, 0, "latest", channelId)
         .then(async (initialNaats) => {
           console.log(
-            `[ForYou] Initial fetch: ${initialNaats.length} videos, applying algorithm...`
+            `[ForYou] Initial fetch: ${initialNaats.length} videos, applying algorithm...`,
           );
 
           // Apply For You algorithm to initial batch
@@ -166,19 +172,25 @@ export function useNaats(
           // Cache the page
           filterCache.set(offsetRef.current, pageNaats);
 
-          // Update state
-          setNaats((prev) => [...prev, ...pageNaats]);
+          // Update state - filter out duplicates
+          setNaats((prev) => {
+            const existingIds = new Set(prev.map((n) => n.$id));
+            const uniqueNewNaats = pageNaats.filter(
+              (n) => !existingIds.has(n.$id),
+            );
+            return [...prev, ...uniqueNewNaats];
+          });
           offsetRef.current += PAGE_SIZE;
           setHasMore(endIndex < orderedNaats.length);
 
           console.log(
-            `[ForYou] Displaying ${pageNaats.length} videos, ${orderedNaats.length - endIndex} remaining`
+            `[ForYou] Displaying ${pageNaats.length} videos, ${orderedNaats.length - endIndex} remaining`,
           );
 
           // Background fetch: Get remaining videos if there are more
           if (initialNaats.length === initialBatchSize) {
             console.log(
-              "[ForYou] Starting background fetch for remaining videos..."
+              "[ForYou] Starting background fetch for remaining videos...",
             );
 
             // Fetch remaining videos in background (non-blocking)
@@ -194,7 +206,7 @@ export function useNaats(
                     batchSize,
                     currentOffset,
                     "latest",
-                    channelId
+                    channelId,
                   );
 
                   if (batch.length > 0) {
@@ -202,34 +214,34 @@ export function useNaats(
                     currentOffset += batchSize;
 
                     console.log(
-                      `[ForYou Background] Fetched ${batch.length} more videos, total: ${allNaats.length}`
+                      `[ForYou Background] Fetched ${batch.length} more videos, total: ${allNaats.length}`,
                     );
 
                     // Re-apply algorithm with expanded dataset
                     const updatedOrderedNaats = await getForYouFeed(
                       allNaats,
-                      channelId
+                      channelId,
                     );
                     fullOrderedListRef.current.set(
                       cacheKey,
-                      updatedOrderedNaats
+                      updatedOrderedNaats,
                     );
 
                     console.log(
-                      `[ForYou Background] Updated recommendations with ${allNaats.length} total videos`
+                      `[ForYou Background] Updated recommendations with ${allNaats.length} total videos`,
                     );
                   }
 
                   if (batch.length < batchSize) {
                     hasMoreBatches = false;
                     console.log(
-                      `[ForYou Background] Complete! Total videos: ${allNaats.length}`
+                      `[ForYou Background] Complete! Total videos: ${allNaats.length}`,
                     );
                   }
                 } catch (err) {
                   console.error(
                     "[ForYou Background] Error fetching more videos:",
-                    err
+                    err,
                   );
                   hasMoreBatches = false;
                 }
@@ -242,10 +254,10 @@ export function useNaats(
         })
         .catch((err) => {
           setError(
-            err instanceof Error ? err : new Error("Failed to load naats")
+            err instanceof Error ? err : new Error("Failed to load naats"),
           );
           console.log(
-            "[useNaats] Error loading more naats, keeping existing data"
+            "[useNaats] Error loading more naats, keeping existing data",
           );
         })
         .finally(() => {
@@ -260,20 +272,26 @@ export function useNaats(
           // Cache the results for this channel + filter combination
           filterCache.set(offsetRef.current, newNaats);
 
-          // Update state
-          setNaats((prev) => [...prev, ...newNaats]);
+          // Update state - filter out duplicates
+          setNaats((prev) => {
+            const existingIds = new Set(prev.map((n) => n.$id));
+            const uniqueNewNaats = newNaats.filter(
+              (n) => !existingIds.has(n.$id),
+            );
+            return [...prev, ...uniqueNewNaats];
+          });
           offsetRef.current += PAGE_SIZE;
           setHasMore(newNaats.length === PAGE_SIZE);
         })
         .catch((err) => {
           setError(
-            err instanceof Error ? err : new Error("Failed to load naats")
+            err instanceof Error ? err : new Error("Failed to load naats"),
           );
 
           // Don't modify naats array on error - keep existing data
           // This prevents thumbnails from disappearing when network fails
           console.log(
-            "[useNaats] Error loading more naats, keeping existing data"
+            "[useNaats] Error loading more naats, keeping existing data",
           );
         })
         .finally(() => {
@@ -317,11 +335,11 @@ export function useNaats(
           initialBatchSize,
           0,
           "latest",
-          channelId
+          channelId,
         );
 
         console.log(
-          `[ForYou Refresh] Initial fetch: ${initialNaats.length} videos, applying algorithm...`
+          `[ForYou Refresh] Initial fetch: ${initialNaats.length} videos, applying algorithm...`,
         );
 
         // Apply For You algorithm
@@ -348,13 +366,13 @@ export function useNaats(
         setHasMore(PAGE_SIZE < orderedNaats.length);
 
         console.log(
-          `[ForYou Refresh] Displaying ${freshNaats.length} videos, ${orderedNaats.length - PAGE_SIZE} remaining`
+          `[ForYou Refresh] Displaying ${freshNaats.length} videos, ${orderedNaats.length - PAGE_SIZE} remaining`,
         );
 
         // Background fetch remaining videos if there are more
         if (initialNaats.length === initialBatchSize) {
           console.log(
-            "[ForYou Refresh] Starting background fetch for remaining videos..."
+            "[ForYou Refresh] Starting background fetch for remaining videos...",
           );
 
           const fetchRemainingInBackground = async () => {
@@ -369,7 +387,7 @@ export function useNaats(
                   batchSize,
                   currentOffset,
                   "latest",
-                  channelId
+                  channelId,
                 );
 
                 if (batch.length > 0) {
@@ -377,25 +395,25 @@ export function useNaats(
                   currentOffset += batchSize;
 
                   console.log(
-                    `[ForYou Refresh Background] Fetched ${batch.length} more, total: ${allNaats.length}`
+                    `[ForYou Refresh Background] Fetched ${batch.length} more, total: ${allNaats.length}`,
                   );
 
                   // Re-apply algorithm with expanded dataset
                   const updatedOrderedNaats = await getForYouFeed(
                     allNaats,
-                    channelId
+                    channelId,
                   );
                   fullOrderedListRef.current.set(cacheKey, updatedOrderedNaats);
 
                   console.log(
-                    `[ForYou Refresh Background] Updated with ${allNaats.length} total videos`
+                    `[ForYou Refresh Background] Updated with ${allNaats.length} total videos`,
                   );
                 }
 
                 if (batch.length < batchSize) {
                   hasMoreBatches = false;
                   console.log(
-                    `[ForYou Refresh Background] Complete! Total: ${allNaats.length}`
+                    `[ForYou Refresh Background] Complete! Total: ${allNaats.length}`,
                   );
                 }
               } catch (err) {
@@ -413,7 +431,7 @@ export function useNaats(
           PAGE_SIZE,
           0,
           filter,
-          channelId
+          channelId,
         );
 
         // Get or create cache for current channel + filter combination
@@ -432,7 +450,7 @@ export function useNaats(
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err : new Error("Failed to refresh naats")
+        err instanceof Error ? err : new Error("Failed to refresh naats"),
       );
     } finally {
       setLoading(false);
