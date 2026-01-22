@@ -75,7 +75,9 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
 
   // Check if any non-default filters are active
   const hasActiveFilters =
-    selectedChannelId !== null || selectedDuration !== "all";
+    selectedSort !== "forYou" ||
+    selectedChannelId !== null ||
+    selectedDuration !== "all";
 
   return (
     <>
@@ -92,10 +94,16 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("sort");
               setShowModal(true);
             }}
-            className="mr-3 px-4 py-2 rounded-full flex-row items-center bg-blue-500"
+            className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
+              selectedSort !== "forYou" ? "bg-blue-500" : "bg-neutral-700"
+            }`}
           >
             <Text className="mr-1.5">{currentSort?.icon}</Text>
-            <Text className="font-semibold text-sm text-white">
+            <Text
+              className={`font-semibold text-sm ${
+                selectedSort !== "forYou" ? "text-white" : "text-neutral-300"
+              }`}
+            >
               {currentSort?.label}
             </Text>
           </Pressable>
@@ -144,6 +152,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
           {hasActiveFilters && (
             <Pressable
               onPress={() => {
+                onSortChange("forYou");
                 onChannelChange(null);
                 onDurationChange("all");
               }}

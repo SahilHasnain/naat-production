@@ -76,10 +76,14 @@ The duration filter allows users to filter naats by their length, making it easi
 ### Mobile ⭐ **IMPROVED**
 
 - **Single Unified Filter Bar**: All filters in one compact horizontal bar
-- Three filter buttons: **Sort** (always blue), **Channel**, **Duration**
+- Three filter buttons: **Sort**, **Channel**, **Duration**
+- All filters are treated equally - any can be active or cleared
+- **Sort button** highlights in blue when not set to default "For You"
+- **Channel button** highlights in blue when a specific channel is selected
+- **Duration button** highlights in blue when not set to "All"
 - Tap any button to open modal with tabbed interface
-- Active filters highlighted in blue (e.g., when channel or duration is selected)
-- **"Clear" button** appears when non-default filters are active
+- **"Clear" button** appears when any filter is non-default
+- One tap to reset all filters to defaults (Sort: For You, Channel: All, Duration: All)
 - Modal provides organized access to all filter options
 - **Clean, uncluttered interface** - reduced from 3 bars to 1
 
@@ -120,8 +124,11 @@ The duration filter allows users to filter naats by their length, making it easi
 - **Modal State**: Uses React Native Modal for filter selection
 - **Tab Navigation**: Three tabs for Sort, Channel, Duration
 - **Visual Feedback**: Active selections shown with checkmarks
-- **Smart Highlighting**: Blue background for active filters
-- **Clear Action**: One-tap reset for channel and duration
+- **Smart Highlighting**: Blue background for any non-default filter
+- **Clear Action**: One-tap reset for ALL filters to defaults
+  - Sort → "For You"
+  - Channel → "All"
+  - Duration → "All"
 - **Accessibility**: Large touch targets, clear labels
 
 ## Future Enhancements
