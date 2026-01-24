@@ -13,7 +13,11 @@ import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
-import { filterNaatsByDuration } from "@naat-collection/shared";
+import {
+  filterNaatsByDuration,
+  getPreferredAudioId,
+  hasAudio,
+} from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -76,7 +80,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const handleAutoplay = async () => {
       // Get all available naats (not just displayed ones)
-      const availableNaats = displayData.filter((naat) => naat.audioId);
+      const availableNaats = displayData.filter((naat) => hasAudio(naat));
 
       if (availableNaats.length === 0) {
         console.log("[Autoplay] No naats available for autoplay");
@@ -170,8 +174,11 @@ export default function HomeScreen() {
       // Track watch history
       await storageService.addToWatchHistory(naat.$id);
 
+      // Get preferred audio ID (cutAudio if available, otherwise audioId)
+      const audioId = getPreferredAudioId(naat);
+
       // Fallback to video if no audio ID
-      if (!naat.audioId) {
+      if (!audioId) {
         console.log("No audio ID available, falling back to video mode");
         showErrorToast("Audio not available. Playing video instead.");
         router.push({
@@ -182,7 +189,7 @@ export default function HomeScreen() {
             channelName: naat.channelName,
             thumbnailUrl: naat.thumbnailUrl,
             youtubeId: naat.youtubeId,
-            audioId: naat.audioId,
+            audioId: audioId,
             isFallback: "true",
           },
         });
@@ -194,17 +201,15 @@ export default function HomeScreen() {
         let audioUrl: string;
         let isLocalFile = false;
 
-        const downloaded = await audioDownloadService.isDownloaded(
-          naat.audioId,
-        );
+        const downloaded = await audioDownloadService.isDownloaded(audioId);
 
         if (downloaded) {
           // Use local file
-          audioUrl = audioDownloadService.getLocalPath(naat.audioId);
+          audioUrl = audioDownloadService.getLocalPath(audioId);
           isLocalFile = true;
         } else {
           // Fetch from storage
-          const response = await appwriteService.getAudioUrl(naat.audioId);
+          const response = await appwriteService.getAudioUrl(audioId);
 
           if (response.success && response.audioUrl) {
             audioUrl = response.audioUrl;
@@ -220,7 +225,7 @@ export default function HomeScreen() {
                 channelName: naat.channelName,
                 thumbnailUrl: naat.thumbnailUrl,
                 youtubeId: naat.youtubeId,
-                audioId: naat.audioId,
+                audioId: audioId,
                 isFallback: "true",
               },
             });
@@ -235,7 +240,7 @@ export default function HomeScreen() {
           channelName: naat.channelName,
           thumbnailUrl: naat.thumbnailUrl,
           isLocalFile,
-          audioId: naat.audioId,
+          audioId: audioId,
           youtubeId: naat.youtubeId,
         };
 
@@ -252,7 +257,7 @@ export default function HomeScreen() {
             channelName: naat.channelName,
             thumbnailUrl: naat.thumbnailUrl,
             youtubeId: naat.youtubeId,
-            audioId: naat.audioId,
+            audioId: audioId,
             isFallback: "true",
           },
         });

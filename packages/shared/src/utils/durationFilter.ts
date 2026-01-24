@@ -1,6 +1,4 @@
-import type { Naat } from "../types";
-
-export type DurationOption = "all" | "short" | "medium" | "long";
+import type { DurationOption, Naat } from "../types";
 
 /**
  * Filter naats by duration

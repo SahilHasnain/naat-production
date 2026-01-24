@@ -11,6 +11,7 @@ export interface Naat {
   youtubeId: string;
   views: number; // view count for popularity sorting
   audioId?: string; // Appwrite Storage file ID for audio
+  cutAudio?: string; // Appwrite Storage file ID for cut/processed audio (prioritized over audioId)
   createdAt: string;
   updatedAt: string;
 }
