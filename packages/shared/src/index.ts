@@ -7,5 +7,5 @@ export * from "./config";
 // Utils
 export * from "./utils/audio";
 export * from "./utils/dateUtils";
-export * from "./utils/durationFilter";
+export { filterNaatsByDuration } from "./utils/durationFilter";
 export * from "./utils/formatters";
