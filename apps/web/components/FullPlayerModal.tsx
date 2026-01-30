@@ -21,15 +21,13 @@ export function FullPlayerModal({
 
   // Seek backward 10 seconds
   const seekBackward = useCallback(() => {
-    const newPosition = Math.max(0, state.position - 10);
-    actions.seek(newPosition);
-  }, [state.position, actions]);
+    actions.seekRelative(-10);
+  }, [actions]);
 
   // Seek forward 10 seconds
   const seekForward = useCallback(() => {
-    const newPosition = Math.min(state.duration, state.position + 10);
-    actions.seek(newPosition);
-  }, [state.duration, state.position, actions]);
+    actions.seekRelative(10);
+  }, [actions]);
 
   // Keyboard controls
   useEffect(() => {

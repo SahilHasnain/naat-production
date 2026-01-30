@@ -552,7 +552,7 @@ export function FloatingPlayer() {
         <div className="flex items-center justify-center gap-6">
           {/* Seek Backward */}
           <button
-            onClick={() => actions.seek(Math.max(0, state.position - 10))}
+            onClick={() => actions.seekRelative(-10)}
             className="w-10 h-10 flex items-center justify-center hover:bg-neutral-700 rounded-full transition-colors"
             aria-label="Seek backward 10 seconds"
           >
@@ -592,9 +592,7 @@ export function FloatingPlayer() {
 
           {/* Seek Forward */}
           <button
-            onClick={() =>
-              actions.seek(Math.min(state.duration, state.position + 10))
-            }
+            onClick={() => actions.seekRelative(10)}
             className="w-10 h-10 flex items-center justify-center hover:bg-neutral-700 rounded-full transition-colors"
             aria-label="Seek forward 10 seconds"
           >

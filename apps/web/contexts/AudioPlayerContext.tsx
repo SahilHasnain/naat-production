@@ -38,6 +38,7 @@ export interface AudioPlayerActions {
   loadAndPlay: (audio: AudioMetadata) => Promise<void>;
   togglePlayPause: () => void;
   seek: (position: number) => void;
+  seekRelative: (delta: number) => void; // New: seek relative to current position
   setVolume: (volume: number) => void;
   stop: () => void;
   toggleRepeat: () => void;
@@ -84,6 +85,10 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Track if we're currently seeking to prevent race conditions
+  const isSeekingRef = useRef(false);
+  const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync refs with state
   useEffect(() => {
@@ -135,6 +140,11 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
 
     // Event listener: onTimeUpdate
     const handleTimeUpdate = () => {
+      // Don't update position if we're currently seeking
+      if (isSeekingRef.current) {
+        return;
+      }
+
       if (audio.currentTime !== undefined) {
         setState((prev) => ({ ...prev, position: audio.currentTime }));
       }
@@ -209,6 +219,11 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
+
+      // Clear seek timeout
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
 
       audio.pause();
       audio.src = "";
@@ -304,14 +319,60 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     if (!audioRef.current) return;
 
     try {
+      // Clear any existing timeout
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
+
+      // Clamp position to valid range
+      const clampedPosition = Math.max(
+        0,
+        Math.min(audioRef.current.duration || 0, position),
+      );
+
+      // CRITICAL: Set seeking flag BEFORE changing currentTime
+      isSeekingRef.current = true;
+
       // Set the audio element's currentTime
-      audioRef.current.currentTime = position;
-      // Immediately update state for instant UI feedback
-      setState((prev) => ({ ...prev, position }));
+      audioRef.current.currentTime = clampedPosition;
+
+      // Update state immediately for instant UI feedback
+      setState((prev) => ({ ...prev, position: clampedPosition }));
+
+      // Use 'seeked' event for more reliable detection of seek completion
+      const handleSeeked = () => {
+        isSeekingRef.current = false;
+        audioRef.current?.removeEventListener("seeked", handleSeeked);
+      };
+
+      audioRef.current.addEventListener("seeked", handleSeeked);
+
+      // Fallback timeout in case 'seeked' event doesn't fire
+      seekTimeoutRef.current = setTimeout(() => {
+        isSeekingRef.current = false;
+        audioRef.current?.removeEventListener("seeked", handleSeeked);
+      }, 200);
     } catch (error) {
       console.error("Error seeking:", error);
+      isSeekingRef.current = false;
     }
   }, []);
+
+  // Seek relative to current position (for +10s / -10s buttons)
+  const seekRelative = useCallback(
+    (delta: number) => {
+      if (!audioRef.current) return;
+
+      // Use the audio element's actual currentTime, not state.position
+      const currentTime = audioRef.current.currentTime;
+      const newPosition = Math.max(
+        0,
+        Math.min(audioRef.current.duration || 0, currentTime + delta),
+      );
+      seek(newPosition);
+    },
+    [seek],
+  );
 
   // Set volume
   const setVolume = useCallback((volume: number) => {
@@ -381,6 +442,7 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     loadAndPlay,
     togglePlayPause,
     seek,
+    seekRelative,
     setVolume,
     stop,
     toggleRepeat,
