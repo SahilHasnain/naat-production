@@ -23,6 +23,7 @@
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
     "check:non-owais": "node scripts/data-management/check-non-owais-naats.js",
-    "cleanup:non-owais": "node cleanup-non-owais-naats.js"
+    "cleanup:non-owais": "node cleanup-non-owais-naats.js",
+    "upload:audio": "node scripts/utilities/download-audio.js"
   }
 }
