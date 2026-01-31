@@ -27,7 +27,7 @@ export function MiniPlayer() {
 
   // Handle switch to video - navigate to video page
   const handleSwitchToVideo = () => {
-    if (state.currentAudio.youtubeId) {
+    if (state.currentAudio?.youtubeId) {
       // Close modal first
       setIsModalOpen(false);
       // Use window.location for full page navigation to ensure it works
