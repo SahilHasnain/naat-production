@@ -7,7 +7,7 @@
  * Usage: node scripts/setup-channels-collection.js
  */
 
-require("dotenv").config({ path: ".env.appwrite" });
+require("dotenv").config({ path: "apps/mobile/.env" });
 const { Client, Databases, ID, IndexType } = require("node-appwrite");
 
 // Configuration from environment variables

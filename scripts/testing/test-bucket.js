@@ -3,7 +3,7 @@
  */
 
 const dotenv = require("dotenv");
-dotenv.config({ path: ".env.appwrite" });
+dotenv.config({ path: "apps/mobile/.env" });
 
 const { Client, Storage } = require("node-appwrite");
 

@@ -23,7 +23,7 @@ const { InputFile } = require("node-appwrite/file");
 const { join } = require("path");
 
 // Load environment variables
-dotenv.config({ path: ".env.appwrite" });
+dotenv.config({ path: "apps/mobile/.env" });
 
 // Configuration
 const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;

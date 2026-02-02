@@ -11,8 +11,8 @@ const sdk = require("node-appwrite");
 const path = require("path");
 const fs = require("fs");
 
-// Try to load from .env.appwrite
-const envPath = path.join(__dirname, "..", ".env.appwrite");
+// Load from the single mobile .env file
+const envPath = path.join(__dirname, "..", "..", "apps", "mobile", ".env");
 require("dotenv").config({ path: envPath });
 
 // Configuration from environment variables
