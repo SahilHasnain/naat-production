@@ -22,14 +22,11 @@ npm run mobile
 
 ### Environment Variables
 
-Create `.env` and `.env.appwrite` files in this directory with the following:
+Create a single `.env` file in this directory with the following:
 
 ```env
-# .env
 EXPO_PUBLIC_APPWRITE_ENDPOINT=your_endpoint
 EXPO_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
-
-# .env.appwrite
 APPWRITE_API_KEY=your_api_key
 ```
 

@@ -5,7 +5,7 @@
 console.log("Starting test...");
 
 const dotenv = require("dotenv");
-dotenv.config({ path: ".env.appwrite" });
+dotenv.config({ path: "apps/mobile/.env" });
 
 console.log("Loaded env");
 
