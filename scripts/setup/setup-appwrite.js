@@ -11,11 +11,8 @@ const sdk = require("node-appwrite");
 const path = require("path");
 const fs = require("fs");
 
-// Try to load from .env or .env.local
-const envPath = fs.existsSync(path.join(__dirname, "..", ".env"))
-  ? path.join(__dirname, "..", ".env")
-  : path.join(__dirname, "..", ".env.local");
-
+// Load from mobile app .env file
+const envPath = path.join(__dirname, "..", "..", "apps", "mobile", ".env");
 require("dotenv").config({ path: envPath });
 
 // Configuration from environment variables
@@ -56,7 +53,7 @@ async function waitForAttribute(
   databases,
   databaseId,
   collectionId,
-  attributeKey
+  attributeKey,
 ) {
   console.log(`   ⏳ Waiting for attribute '${attributeKey}' to be ready...`);
   let attempts = 0;
@@ -66,10 +63,10 @@ async function waitForAttribute(
     try {
       const collection = await databases.getCollection(
         databaseId,
-        collectionId
+        collectionId,
       );
       const attribute = collection.attributes.find(
-        (attr) => attr.key === attributeKey
+        (attr) => attr.key === attributeKey,
       );
 
       if (attribute && attribute.status === "available") {
@@ -87,17 +84,24 @@ async function waitForAttribute(
   }
 
   throw new Error(
-    `Attribute '${attributeKey}' did not become available in time`
+    `Attribute '${attributeKey}' did not become available in time`,
   );
 }
 
 // Create Naats collection
 async function createNaatsCollection(databases) {
-  const collectionId = sdk.ID.unique();
+  const collectionId = "naats";
 
   console.log("\n📦 Creating Naats collection...");
 
   try {
+    await databases.createCollection(
+      config.databaseId,
+      collectionId,
+      "Naats",
+      [sdk.Permission.read(sdk.Role.any())],
+      false, // documentSecurity
+    );
     console.log(`✅ Collection created with ID: ${collectionId}`);
     return collectionId;
   } catch (error) {
@@ -246,11 +250,11 @@ async function createAttributes(databases, collectionId) {
         databases,
         config.databaseId,
         collectionId,
-        attr.name
+        attr.name,
       );
     } catch (error) {
       console.error(
-        `   ❌ Failed to create attribute '${attr.name}': ${error.message}`
+        `   ❌ Failed to create attribute '${attr.name}': ${error.message}`,
       );
       throw error;
     }
@@ -323,7 +327,7 @@ async function createIndexes(databases, collectionId) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error) {
       console.error(
-        `   ❌ Failed to create index '${index.name}': ${error.message}`
+        `   ❌ Failed to create index '${index.name}': ${error.message}`,
       );
       throw error;
     }
@@ -337,24 +341,28 @@ async function updateEnvFile(collectionId) {
   const fs = require("fs");
   const path = require("path");
 
-  console.log("\n📝 Updating .env.local file...");
+  console.log("\n📝 Updating .env file...");
 
   try {
-    const envPath = path.join(process.cwd(), ".env.local");
+    const envPath = path.join(__dirname, "..", "..", "apps", "mobile", ".env");
     let envContent = fs.readFileSync(envPath, "utf8");
 
     // Replace the placeholder collection ID
-    envContent = envContent.replace(
-      /EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=.*/,
-      `EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=${collectionId}`
-    );
+    if (envContent.includes("EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=")) {
+      envContent = envContent.replace(
+        /EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=.*/,
+        `EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=${collectionId}`,
+      );
+    } else {
+      envContent += `\nEXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=${collectionId}`;
+    }
 
     fs.writeFileSync(envPath, envContent);
-    console.log("✅ .env.local updated with collection ID");
+    console.log("✅ .env updated with collection ID");
   } catch (error) {
-    console.error(`❌ Failed to update .env.local: ${error.message}`);
+    console.error(`❌ Failed to update .env: ${error.message}`);
     console.log(
-      `\n⚠️  Please manually update EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID to: ${collectionId}`
+      `\n⚠️  Please manually update EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID to: ${collectionId}`,
     );
   }
 }
@@ -386,7 +394,7 @@ async function setup() {
     await updateEnvFile(collectionId);
 
     console.log(
-      "\n═══════════════════════════════════════════════════════════"
+      "\n═══════════════════════════════════════════════════════════",
     );
     console.log("🎉 Setup completed successfully!\n");
     console.log("📋 Summary:");
@@ -400,7 +408,7 @@ async function setup() {
     console.log("\n");
   } catch (error) {
     console.error(
-      "\n═══════════════════════════════════════════════════════════"
+      "\n═══════════════════════════════════════════════════════════",
     );
     console.error("❌ Setup failed:", error.message);
     console.error("\nPlease check the error above and try again.");

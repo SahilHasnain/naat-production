@@ -25,5 +25,9 @@
     "check:non-owais": "node scripts/data-management/check-non-owais-naats.js",
     "cleanup:non-owais": "node cleanup-non-owais-naats.js",
     "upload:audio": "node scripts/utilities/download-audio.js"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "node-appwrite": "^22.0.0"
   }
 }
