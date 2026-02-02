@@ -49,7 +49,7 @@ async function testUpload() {
 
     console.log("Uploading to Appwrite...");
     const result = await storage.createFile({
-      bucketId: "audio-files",
+      bucketId: process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e",
       fileId: ID.unique(),
       file: inputFile,
     });

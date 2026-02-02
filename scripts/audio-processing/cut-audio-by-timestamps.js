@@ -12,14 +12,8 @@
  *   node scripts/audio-processing/cut-audio-by-timestamps.js
  */
 
-const {
-  Client,
-  Databases,
-  Storage,
-  ID,
-  Query,
-} = require("node-appwrite");
-const { InputFile } = require("node-appwrite/file")
+const { Client, Databases, Storage, ID, Query } = require("node-appwrite");
+const { InputFile } = require("node-appwrite/file");
 const dotenv = require("dotenv");
 const {
   existsSync,
@@ -44,7 +38,8 @@ const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
 const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID;
-const AUDIO_BUCKET_ID = "audio-files";
+const AUDIO_BUCKET_ID =
+  process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e";
 
 // Directories
 const TEMP_DIR = join(process.cwd(), "temp-audio-cuts");

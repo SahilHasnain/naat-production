@@ -22,7 +22,8 @@ const storage = new Storage(client);
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "";
 const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID || "";
-const AUDIO_BUCKET_ID = "audio-files";
+const AUDIO_BUCKET_ID =
+  process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e";
 
 /**
  * Ask user for confirmation before deletion

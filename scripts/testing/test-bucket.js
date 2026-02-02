@@ -18,7 +18,9 @@ async function testBucket() {
   try {
     console.log("Testing bucket access...");
 
-    const bucket = await storage.getBucket("audio-files");
+    const bucket = await storage.getBucket(
+      process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e",
+    );
 
     console.log("✅ Bucket found!");
     console.log(`   Name: ${bucket.name}`);

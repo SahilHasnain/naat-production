@@ -31,7 +31,8 @@ const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
 const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID;
-const AUDIO_BUCKET_ID = "audio-files";
+const AUDIO_BUCKET_ID =
+  process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -222,14 +223,14 @@ async function fetchAllNaatsWithoutAudio(userLimit = null) {
     const response = await databases.listDocuments(
       DATABASE_ID,
       NAATS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const batch = response.documents;
     allNaats.push(...batch);
 
     console.log(
-      `  Fetched batch: ${batch.length} naats (total: ${allNaats.length})`
+      `  Fetched batch: ${batch.length} naats (total: ${allNaats.length})`,
     );
 
     // Check if we should continue
@@ -259,7 +260,7 @@ async function main() {
   console.log(`  Bucket: ${AUDIO_BUCKET_ID}`);
   console.log(`  Limit: ${limit || "All videos"}`);
   console.log(
-    `  Mode: ${testMode ? "Test (no upload)" : "Full (download + upload)"}\n`
+    `  Mode: ${testMode ? "Test (no upload)" : "Full (download + upload)"}\n`,
   );
 
   // Ensure temp directory exists

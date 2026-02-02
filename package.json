@@ -1,5 +1,5 @@
 {
-  "name": "naat-collection-monorepo",
+  "name": "naat-production-monorepo",
   "version": "1.0.0",
   "private": true,
   "workspaces": [

@@ -12,6 +12,7 @@ export interface AppwriteConfig {
   naatsCollectionId: string;
   channelsCollectionId: string;
   audioCacheCollectionId: string;
+  audioBucketId: string;
   audioExtractionFunctionUrl: string;
   audioStreamingFunctionUrl: string;
   rapidApiKey: string;
@@ -31,6 +32,7 @@ export function createAppwriteConfig(
     naatsCollectionId: env.APPWRITE_NAATS_COLLECTION_ID || "",
     channelsCollectionId: env.APPWRITE_CHANNELS_COLLECTION_ID || "",
     audioCacheCollectionId: env.APPWRITE_AUDIO_CACHE_COLLECTION_ID || "",
+    audioBucketId: env.APPWRITE_AUDIO_BUCKET_ID || "audio-files",
     audioExtractionFunctionUrl: env.AUDIO_EXTRACTION_FUNCTION_URL || "",
     audioStreamingFunctionUrl: env.AUDIO_STREAMING_FUNCTION_URL || "",
     rapidApiKey: env.RAPIDAPI_KEY || "",

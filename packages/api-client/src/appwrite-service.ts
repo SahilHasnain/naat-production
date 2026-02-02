@@ -226,7 +226,8 @@ export class AppwriteService implements IAppwriteService {
     }
 
     try {
-      const audioUrl = `${this.config.endpoint}/storage/buckets/audio-files/files/${audioId}/view?project=${this.config.projectId}`;
+      const bucketId = this.config.audioBucketId || "audio-files";
+      const audioUrl = `${this.config.endpoint}/storage/buckets/${bucketId}/files/${audioId}/view?project=${this.config.projectId}`;
 
       return {
         success: true,

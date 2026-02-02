@@ -28,7 +28,7 @@ async function testSmallUpload() {
     console.log("Uploading tiny file...");
 
     const result = await storage.createFile({
-      bucketId: "audio-files",
+      bucketId: process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e",
       fileId: ID.unique(),
       file: InputFile.fromPath(testPath, "test-tiny.txt"),
     });
@@ -40,7 +40,10 @@ async function testSmallUpload() {
     fs.unlinkSync(testPath);
 
     // Delete from storage
-    await storage.deleteFile("audio-files", result.$id);
+    await storage.deleteFile(
+      process.env.APPWRITE_AUDIO_BUCKET_ID || "6980cdb9002a656aae6e",
+      result.$id,
+    );
     console.log("✅ Cleanup done");
   } catch (error) {
     console.error("❌ Error:", error.message);
