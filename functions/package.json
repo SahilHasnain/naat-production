@@ -1,0 +1,19 @@
+{
+  "name": "ingest-videos",
+  "version": "1.0.0",
+  "description": "Appwrite Function to ingest naat videos from YouTube",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "build": "echo 'Build complete'",
+    "test:local": "node extract-audio/test-local.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^21.1.0",
+    "youtube-dl-exec": "^2.4.13"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}

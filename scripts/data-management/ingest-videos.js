@@ -1,0 +1,486 @@
+#!/usr/bin/env node
+
+const { Client, Databases, ID } = require("node-appwrite");
+require("dotenv").config();
+
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+// Support both YOUTUBE_CHANNEL_IDS (comma-separated) and legacy YOUTUBE_CHANNEL_ID
+const YOUTUBE_CHANNEL_IDS =
+  process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID;
+const APPWRITE_ENDPOINT = process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
+const APPWRITE_PROJECT_ID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
+const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
+const DATABASE_ID = process.env.EXPO_PUBLIC_DATABASE_ID;
+const COLLECTION_ID = process.env.EXPO_PUBLIC_COLLECTION_ID;
+
+function validateEnv() {
+  const required = [
+    "YOUTUBE_API_KEY",
+    "EXPO_PUBLIC_APPWRITE_ENDPOINT",
+    "EXPO_PUBLIC_APPWRITE_PROJECT_ID",
+    "APPWRITE_API_KEY",
+    "EXPO_PUBLIC_DATABASE_ID",
+    "EXPO_PUBLIC_COLLECTION_ID",
+  ];
+
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error("❌ Missing required environment variables:");
+    missing.forEach((key) => console.error(`   - ${key}`));
+    process.exit(1);
+  }
+
+  // Check for at least one channel ID
+  if (!process.env.YOUTUBE_CHANNEL_IDS && !process.env.YOUTUBE_CHANNEL_ID) {
+    console.error("❌ Missing required environment variable:");
+    console.error("   - YOUTUBE_CHANNEL_IDS or YOUTUBE_CHANNEL_ID");
+    process.exit(1);
+  }
+}
+
+function initAppwrite() {
+  const client = new Client()
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID)
+    .setKey(APPWRITE_API_KEY);
+
+  return new Databases(client);
+}
+
+async function fetchYouTubeVideos(channelId, maxResults = 5000) {
+  const baseUrl = "https://www.googleapis.com/youtube/v3";
+
+  try {
+    // First, get the uploads playlist ID and channel name for the channel
+    const channelResponse = await fetch(
+      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`,
+    );
+
+    if (!channelResponse.ok) {
+      throw new Error(
+        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`,
+      );
+    }
+
+    const channelData = await channelResponse.json();
+
+    if (!channelData.items || channelData.items.length === 0) {
+      throw new Error(`Channel not found: ${channelId}`);
+    }
+
+    const channelName = channelData.items[0].snippet.title;
+    const uploadsPlaylistId =
+      channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+    // Fetch videos from the uploads playlist with pagination
+    const allVideoItems = [];
+    let pageToken = null;
+    const perPage = 50; // YouTube API max per request
+
+    while (allVideoItems.length < maxResults) {
+      let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${perPage}&key=${YOUTUBE_API_KEY}`;
+
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+
+      const playlistResponse = await fetch(playlistUrl);
+
+      if (!playlistResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`,
+        );
+      }
+
+      const playlistData = await playlistResponse.json();
+
+      if (!playlistData.items || playlistData.items.length === 0) {
+        break;
+      }
+
+      allVideoItems.push(...playlistData.items);
+      console.log(`   Fetched ${allVideoItems.length} videos so far...`);
+
+      pageToken = playlistData.nextPageToken;
+
+      if (!pageToken) {
+        break; // No more pages
+      }
+    }
+
+    if (allVideoItems.length === 0) {
+      return [];
+    }
+
+    const limitedVideoItems = allVideoItems.slice(0, maxResults);
+
+    // Fetch video details in batches (max 50 IDs per request)
+    const allVideosData = [];
+    const batchSize = 50;
+
+    for (let i = 0; i < limitedVideoItems.length; i += batchSize) {
+      const batch = limitedVideoItems.slice(i, i + batchSize);
+      const videoIds = batch
+        .map((item) => item.contentDetails.videoId)
+        .join(",");
+
+      const videosResponse = await fetch(
+        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`,
+      );
+
+      if (!videosResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`,
+        );
+      }
+
+      const videosData = await videosResponse.json();
+      allVideosData.push(...videosData.items);
+
+      console.log(`   Processed details for ${allVideosData.length} videos...`);
+    }
+
+    return {
+      channelId,
+      channelName,
+      videos: allVideosData.map((video) => ({
+        id: { videoId: video.id },
+        snippet: video.snippet,
+        contentDetails: video.contentDetails,
+        statistics: video.statistics,
+      })),
+    };
+  } catch (error) {
+    throw new Error(`Failed to fetch YouTube videos: ${error.message}`);
+  }
+}
+
+function parseDuration(isoDuration) {
+  const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+
+  const hours = parseInt(match[1] || 0);
+  const minutes = parseInt(match[2] || 0);
+  const seconds = parseInt(match[3] || 0);
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Check if a video should be filtered out based on channel and title rules
+ * @param {string} channelId - The YouTube channel ID
+ * @param {string} title - The video title
+ * @returns {boolean} - true if video should be filtered out (excluded)
+ */
+function shouldFilterVideo(channelId, title) {
+  // Baghdadi Sound & Video channel ID
+  const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
+
+  // Check if this is the Baghdadi channel
+  if (channelId !== BAGHDADI_CHANNEL_ID) {
+    return false; // Don't filter videos from other channels
+  }
+
+  // For Baghdadi channel, only include videos with Owais Raza/Qadri in title
+  const titleLower = title.toLowerCase();
+
+  // Common spelling variations for "Owais"
+  const owaisVariations = [
+    "owais",
+    "owias",
+    "owes",
+    "owaiz",
+    "awais",
+    "awaiz",
+    "uwais",
+    "uwaiz",
+  ];
+
+  // Check if title contains "Owais" (any variation)
+  const hasOwais = owaisVariations.some((owais) => titleLower.includes(owais));
+
+  // Check if title contains "Raza" (exact, no variations)
+  const hasRaza = titleLower.includes("raza");
+
+  // Check if title contains "Qadri" (exact, no variations)
+  const hasQadri = titleLower.includes("qadri");
+
+  // Must match one of these patterns:
+  // 1. Owais + Raza
+  // 2. Owais + Qadri
+  // 3. Owais + Raza + Qadri
+  const isOwaisVideo = hasOwais && (hasRaza || hasQadri);
+
+  // Filter out (return true) if it does NOT match the pattern
+  return !isOwaisVideo;
+}
+
+async function getAllExistingVideos(databases) {
+  try {
+    const allDocuments = [];
+    let offset = 0;
+    const limit = 5000; // Max per request
+
+    while (true) {
+      const { Query } = require("node-appwrite");
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID,
+        [Query.limit(limit), Query.offset(offset)],
+      );
+
+      allDocuments.push(...response.documents);
+
+      if (response.documents.length < limit) {
+        break; // No more documents
+      }
+
+      offset += limit;
+    }
+
+    // Create a Map: youtubeId -> {documentId, views}
+    const existingVideosMap = new Map();
+    allDocuments.forEach((doc) => {
+      existingVideosMap.set(doc.youtubeId, {
+        documentId: doc.$id,
+        views: doc.views || 0,
+      });
+    });
+
+    return existingVideosMap;
+  } catch (error) {
+    throw new Error(`Failed to fetch existing videos: ${error.message}`);
+  }
+}
+
+async function createVideoDocument(databases, video, channelId, channelName) {
+  const videoId = video.id.videoId;
+  const snippet = video.snippet;
+  const contentDetails = video.contentDetails;
+  const statistics = video.statistics;
+
+  const document = {
+    title: snippet.title,
+    videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    thumbnailUrl:
+      snippet.thumbnails.high?.url || snippet.thumbnails.default?.url,
+    duration: parseDuration(contentDetails.duration),
+    uploadDate: snippet.publishedAt,
+    channelName: channelName,
+    channelId: channelId,
+    youtubeId: videoId,
+    views: parseInt(statistics?.viewCount || "0", 10),
+  };
+
+  await databases.createDocument(
+    DATABASE_ID,
+    COLLECTION_ID,
+    ID.unique(),
+    document,
+  );
+  return document;
+}
+
+async function updateVideoViews(databases, documentId, newViews) {
+  try {
+    await databases.updateDocument(DATABASE_ID, COLLECTION_ID, documentId, {
+      views: newViews,
+    });
+  } catch (error) {
+    throw new Error(`Failed to update video views: ${error.message}`);
+  }
+}
+
+async function ingestChannelVideos(databases, existingVideosMap, channelId) {
+  console.log(`\n📺 Processing channel: ${channelId}`);
+  console.log("   Fetching videos from YouTube...");
+
+  const channelData = await fetchYouTubeVideos(channelId);
+  const { channelName, videos } = channelData;
+
+  console.log(
+    `   ✅ Found ${videos.length} videos for channel: ${channelName}`,
+  );
+
+  let newCount = 0;
+  let updatedCount = 0;
+  let unchangedCount = 0;
+  let errorCount = 0;
+  let filteredCount = 0;
+
+  for (const video of videos) {
+    const videoId = video.id.videoId;
+    const title = video.snippet.title;
+    const newViews = parseInt(video.statistics?.viewCount || "0", 10);
+
+    // Check if video should be filtered out
+    if (shouldFilterVideo(channelId, title)) {
+      console.log(`   🚫 Filtered: ${title} (non-Owais from Baghdadi)`);
+      filteredCount++;
+      continue;
+    }
+
+    try {
+      const existingVideo = existingVideosMap.get(videoId);
+
+      if (existingVideo) {
+        // Video exists - check if views need updating
+        if (existingVideo.views !== newViews) {
+          await updateVideoViews(databases, existingVideo.documentId, newViews);
+          console.log(
+            `   🔄 Updated: ${title} (${existingVideo.views} → ${newViews} views)`,
+          );
+          updatedCount++;
+        } else {
+          console.log(`   ⏭️  Unchanged: ${title}`);
+          unchangedCount++;
+        }
+      } else {
+        // New video - insert it
+        try {
+          await createVideoDocument(databases, video, channelId, channelName);
+          console.log(`   ✅ Added: ${title} (${newViews} views)`);
+          newCount++;
+        } catch (createError) {
+          // Handle duplicate ID error (race condition)
+          if (
+            createError.code === 409 ||
+            createError.message.includes("already exists")
+          ) {
+            console.log(`   ⏭️  Skipped: ${title} (already exists)`);
+            unchangedCount++;
+          } else {
+            throw createError;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`   ❌ Error processing ${title}:`, error.message);
+      errorCount++;
+    }
+  }
+
+  return {
+    channelId,
+    channelName,
+    newCount,
+    updatedCount,
+    unchangedCount,
+    errorCount,
+    filteredCount,
+    totalVideos: videos.length,
+  };
+}
+
+async function ingestVideos() {
+  console.log("🚀 Starting video ingestion...\n");
+
+  try {
+    validateEnv();
+    console.log("✅ Environment variables validated");
+
+    // Parse channel IDs (comma-separated)
+    const channelIds = YOUTUBE_CHANNEL_IDS.split(",")
+      .map((id) => id.trim())
+      .filter((id) => id);
+    console.log(`✅ Found ${channelIds.length} channel(s) to process`);
+
+    const databases = initAppwrite();
+    console.log("✅ Appwrite client initialized");
+
+    console.log("\n📦 Fetching existing videos from database...");
+    const existingVideosMap = await getAllExistingVideos(databases);
+    console.log(
+      `✅ Found ${existingVideosMap.size} existing videos in database`,
+    );
+
+    // Process each channel sequentially
+    const channelResults = [];
+    for (const channelId of channelIds) {
+      try {
+        const result = await ingestChannelVideos(
+          databases,
+          existingVideosMap,
+          channelId,
+        );
+        channelResults.push(result);
+      } catch (error) {
+        console.error(
+          `\n❌ Error processing channel ${channelId}:`,
+          error.message,
+        );
+        channelResults.push({
+          channelId,
+          channelName: "Unknown",
+          newCount: 0,
+          updatedCount: 0,
+          unchangedCount: 0,
+          errorCount: 0,
+          filteredCount: 0,
+          totalVideos: 0,
+          error: error.message,
+        });
+      }
+    }
+
+    // Print per-channel statistics
+    console.log("\n" + "=".repeat(60));
+    console.log("📊 Per-Channel Statistics:");
+    console.log("=".repeat(60));
+
+    for (const result of channelResults) {
+      console.log(`\n📺 ${result.channelName} (${result.channelId}):`);
+      if (result.error) {
+        console.log(`   ❌ Error: ${result.error}`);
+      } else {
+        console.log(`   📹 Total videos: ${result.totalVideos}`);
+        console.log(`   ✅ New videos added: ${result.newCount}`);
+        console.log(`   🔄 Videos updated: ${result.updatedCount}`);
+        console.log(`   ⏭️  Videos unchanged: ${result.unchangedCount}`);
+        console.log(`   🚫 Videos filtered: ${result.filteredCount}`);
+        console.log(`   ❌ Errors: ${result.errorCount}`);
+      }
+    }
+
+    // Print overall summary
+    const totalNew = channelResults.reduce((sum, r) => sum + r.newCount, 0);
+    const totalUpdated = channelResults.reduce(
+      (sum, r) => sum + r.updatedCount,
+      0,
+    );
+    const totalUnchanged = channelResults.reduce(
+      (sum, r) => sum + r.unchangedCount,
+      0,
+    );
+    const totalErrors = channelResults.reduce(
+      (sum, r) => sum + r.errorCount,
+      0,
+    );
+    const totalFiltered = channelResults.reduce(
+      (sum, r) => sum + r.filteredCount,
+      0,
+    );
+    const totalVideos = channelResults.reduce(
+      (sum, r) => sum + r.totalVideos,
+      0,
+    );
+
+    console.log("\n" + "=".repeat(60));
+    console.log("📊 Overall Summary:");
+    console.log("=".repeat(60));
+    console.log(`   📺 Channels processed: ${channelResults.length}`);
+    console.log(`   📹 Total videos processed: ${totalVideos}`);
+    console.log(`   ✅ New videos added: ${totalNew}`);
+    console.log(`   🔄 Videos updated: ${totalUpdated}`);
+    console.log(`   ⏭️  Videos unchanged: ${totalUnchanged}`);
+    console.log(`   🚫 Videos filtered: ${totalFiltered}`);
+    console.log(`   ❌ Errors: ${totalErrors}`);
+    console.log("\n✨ Ingestion complete!");
+  } catch (error) {
+    console.error("\n❌ Fatal error:", error.message);
+    process.exit(1);
+  }
+}
+
+ingestVideos();
