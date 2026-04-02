@@ -1,0 +1,1178 @@
+{
+  "generatedAt": "2026-04-02T05:00:18.582Z",
+  "project": {
+    "id": "695bb97700213f4ef5dd",
+    "endpoint": "https://sgp.cloud.appwrite.io/v1"
+  },
+  "database": {
+    "id": "695bba86001b50478ed4",
+    "name": "naatDB",
+    "createdAt": "2026-01-05T13:20:06.504+00:00",
+    "updatedAt": "2026-03-13T12:34:53.579+00:00"
+  },
+  "collections": [
+    {
+      "id": "695bc8e70038db72df5b",
+      "name": "Naats",
+      "documentSecurity": false,
+      "attributesCount": 19,
+      "indexesCount": 4,
+      "attributes": [
+        {
+          "key": "title",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:32.828+00:00",
+          "$updatedAt": "2026-01-05T14:21:32.957+00:00",
+          "size": 500,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "videoUrl",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:34.081+00:00",
+          "$updatedAt": "2026-01-05T14:21:34.341+00:00",
+          "size": 1000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "thumbnailUrl",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:35.402+00:00",
+          "$updatedAt": "2026-01-05T14:21:35.530+00:00",
+          "size": 1000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "duration",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:36.493+00:00",
+          "$updatedAt": "2026-01-05T14:21:36.636+00:00",
+          "min": 0,
+          "max": 9223372036854776000,
+          "default": null
+        },
+        {
+          "key": "uploadDate",
+          "type": "datetime",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:37.771+00:00",
+          "$updatedAt": "2026-01-05T14:21:37.918+00:00",
+          "format": "",
+          "default": null
+        },
+        {
+          "key": "channelName",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:41.145+00:00",
+          "$updatedAt": "2026-01-06T14:14:25.590+00:00",
+          "size": 200,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "channelId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:43.199+00:00",
+          "$updatedAt": "2026-01-06T14:14:45.025+00:00",
+          "size": 100,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "youtubeId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-05T14:21:44.479+00:00",
+          "$updatedAt": "2026-01-05T14:21:44.604+00:00",
+          "size": 50,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "views",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-06T16:01:49.302+00:00",
+          "$updatedAt": "2026-01-06T16:01:49.848+00:00",
+          "min": -9223372036854776000,
+          "max": 9223372036854776000,
+          "default": null
+        },
+        {
+          "key": "audioId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-01-08T05:20:03.429+00:00",
+          "$updatedAt": "2026-01-08T05:20:04.412+00:00",
+          "size": 100,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "cutAudio",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-01-24T15:12:06.688+00:00",
+          "$updatedAt": "2026-01-24T15:12:07.730+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "exclude",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-05T06:13:54.135+00:00",
+          "$updatedAt": "2026-03-05T06:13:55.270+00:00",
+          "default": null
+        },
+        {
+          "key": "radio",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-05T09:55:51.974+00:00",
+          "$updatedAt": "2026-03-05T09:55:52.900+00:00",
+          "default": null
+        },
+        {
+          "key": "cutDuration",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-07T05:56:46.856+00:00",
+          "$updatedAt": "2026-03-07T05:56:47.808+00:00",
+          "min": -9223372036854776000,
+          "max": 9223372036854776000,
+          "default": null
+        },
+        {
+          "key": "cutSegments",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-10T02:25:03.585+00:00",
+          "$updatedAt": "2026-03-10T02:25:04.557+00:00",
+          "size": 5000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "cutStatus",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-10T03:08:45.409+00:00",
+          "$updatedAt": "2026-03-10T03:08:46.341+00:00",
+          "size": 50,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "isAiCut",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T08:00:37.082+00:00",
+          "$updatedAt": "2026-03-19T08:00:38.032+00:00",
+          "default": null
+        },
+        {
+          "key": "aiProcessing",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T08:01:10.626+00:00",
+          "$updatedAt": "2026-03-19T08:01:11.584+00:00",
+          "size": 50,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "aiTrain",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-20T03:45:26.056+00:00",
+          "$updatedAt": "2026-03-20T03:45:26.998+00:00",
+          "default": false
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "4952_1_title_search",
+          "$createdAt": "2026-01-05T14:21:45.742+00:00",
+          "$updatedAt": "2026-01-05T14:21:46.075+00:00",
+          "key": "title_search",
+          "type": "fulltext",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "title"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": []
+        },
+        {
+          "$id": "4952_1_youtubeId_unique",
+          "$createdAt": "2026-01-05T14:21:48.325+00:00",
+          "$updatedAt": "2026-01-05T14:21:48.393+00:00",
+          "key": "youtubeId_unique",
+          "type": "unique",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "youtubeId"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": []
+        },
+        {
+          "$id": "4952_1_uploadDate_desc",
+          "$createdAt": "2026-01-05T14:21:50.973+00:00",
+          "$updatedAt": "2026-01-05T14:21:51.048+00:00",
+          "key": "uploadDate_desc",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "uploadDate"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": [
+            "DESC"
+          ]
+        },
+        {
+          "$id": "4952_1_reciterId_index",
+          "$createdAt": "2026-01-05T14:21:53.575+00:00",
+          "$updatedAt": "2026-01-06T14:14:45.040+00:00",
+          "key": "reciterId_index",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "channelId"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": []
+        }
+      ],
+      "permissions": [
+        "read(\"any\")"
+      ]
+    },
+    {
+      "id": "channels",
+      "name": "Channels",
+      "documentSecurity": false,
+      "attributesCount": 10,
+      "indexesCount": 2,
+      "attributes": [
+        {
+          "key": "channelId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-07T15:38:34.962+00:00",
+          "$updatedAt": "2026-01-07T15:38:35.108+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "channelName",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-01-07T15:38:36.411+00:00",
+          "$updatedAt": "2026-01-07T15:38:36.551+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "naatCount",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-01-07T15:38:37.090+00:00",
+          "$updatedAt": "2026-01-07T15:38:37.233+00:00",
+          "min": 0,
+          "max": 9223372036854776000,
+          "default": 0
+        },
+        {
+          "key": "lastUpdated",
+          "type": "datetime",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-01-07T15:38:37.862+00:00",
+          "$updatedAt": "2026-01-07T15:38:38.008+00:00",
+          "format": "",
+          "default": null
+        },
+        {
+          "key": "isOfficial",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-02-09T18:12:59.607+00:00",
+          "$updatedAt": "2026-02-09T18:12:59.843+00:00",
+          "default": true
+        },
+        {
+          "key": "isOther",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-02-09T18:13:00.235+00:00",
+          "$updatedAt": "2026-02-09T18:13:00.304+00:00",
+          "default": false
+        },
+        {
+          "key": "type",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-02-09T18:35:21.375+00:00",
+          "$updatedAt": "2026-02-09T18:35:21.441+00:00",
+          "size": 20,
+          "default": "channel",
+          "encrypt": false
+        },
+        {
+          "key": "playlistId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-02-09T18:35:21.977+00:00",
+          "$updatedAt": "2026-02-09T18:35:22.041+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "isOWQ",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T05:08:22.550+00:00",
+          "$updatedAt": "2026-03-19T05:08:22.892+00:00",
+          "default": null
+        },
+        {
+          "key": "isSpeech",
+          "type": "boolean",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T05:14:37.898+00:00",
+          "$updatedAt": "2026-03-19T05:14:37.972+00:00",
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "4952_4_channelId_unique",
+          "$createdAt": "2026-01-07T15:38:43.591+00:00",
+          "$updatedAt": "2026-01-07T15:38:43.667+00:00",
+          "key": "channelId_unique",
+          "type": "unique",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "channelId"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": []
+        },
+        {
+          "$id": "4952_4_channelName_index",
+          "$createdAt": "2026-01-07T15:38:44.580+00:00",
+          "$updatedAt": "2026-01-07T15:38:44.652+00:00",
+          "key": "channelName_index",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "channelName"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": [
+            "ASC"
+          ]
+        }
+      ],
+      "permissions": [
+        "read(\"any\")"
+      ]
+    },
+    {
+      "id": "live_radio",
+      "name": "Live Radio",
+      "documentSecurity": false,
+      "attributesCount": 3,
+      "indexesCount": 0,
+      "attributes": [
+        {
+          "key": "playlist",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": true,
+          "$createdAt": "2026-02-10T13:10:01.039+00:00",
+          "$updatedAt": "2026-02-10T13:10:01.183+00:00",
+          "size": 10000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "updatedAt",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-02-10T13:10:04.072+00:00",
+          "$updatedAt": "2026-02-10T13:10:04.217+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "currentTrackIndex",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-02-11T01:47:30.725+00:00",
+          "$updatedAt": "2026-02-11T01:47:30.800+00:00",
+          "min": 0,
+          "max": 9223372036854776000,
+          "default": null
+        }
+      ],
+      "indexes": [],
+      "permissions": [
+        "read(\"any\")",
+        "create(\"any\")",
+        "update(\"any\")",
+        "delete(\"any\")"
+      ]
+    },
+    {
+      "id": "user_radio_states",
+      "name": "User Radio States",
+      "documentSecurity": false,
+      "attributesCount": 5,
+      "indexesCount": 0,
+      "attributes": [
+        {
+          "key": "userId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-02-22T03:54:10.511+00:00",
+          "$updatedAt": "2026-02-22T03:54:10.636+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "currentTrackIndex",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-02-22T03:54:12.898+00:00",
+          "$updatedAt": "2026-02-22T03:54:13.048+00:00",
+          "min": 0,
+          "max": 9223372036854776000,
+          "default": 0
+        },
+        {
+          "key": "playlist",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": true,
+          "$createdAt": "2026-02-22T03:54:15.140+00:00",
+          "$updatedAt": "2026-02-22T03:54:15.256+00:00",
+          "size": 10000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "watchHistory",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": true,
+          "$createdAt": "2026-02-22T03:54:17.477+00:00",
+          "$updatedAt": "2026-02-22T03:54:17.594+00:00",
+          "size": 10000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "updatedAt",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-02-22T03:54:19.877+00:00",
+          "$updatedAt": "2026-02-22T03:54:20.011+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        }
+      ],
+      "indexes": [],
+      "permissions": [
+        "read(\"any\")",
+        "create(\"any\")",
+        "update(\"any\")",
+        "delete(\"any\")"
+      ]
+    },
+    {
+      "id": "live_radio_listeners",
+      "name": "Live Radio Listeners",
+      "documentSecurity": false,
+      "attributesCount": 2,
+      "indexesCount": 1,
+      "attributes": [
+        {
+          "key": "lastHeartbeat",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-07T23:37:05.276+00:00",
+          "$updatedAt": "2026-03-07T23:37:05.453+00:00",
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "deviceInfo",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-07T23:37:07.505+00:00",
+          "$updatedAt": "2026-03-07T23:37:07.652+00:00",
+          "size": 500,
+          "default": null,
+          "encrypt": false
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "4952_11_lastHeartbeat_index",
+          "$createdAt": "2026-03-07T23:37:09.742+00:00",
+          "$updatedAt": "2026-03-07T23:37:09.811+00:00",
+          "key": "lastHeartbeat_index",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "lastHeartbeat"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": [
+            "ASC"
+          ]
+        }
+      ],
+      "permissions": [
+        "read(\"any\")",
+        "create(\"any\")",
+        "update(\"any\")",
+        "delete(\"any\")"
+      ]
+    },
+    {
+      "id": "ai_jobs",
+      "name": "AI Jobs",
+      "documentSecurity": false,
+      "attributesCount": 12,
+      "indexesCount": 3,
+      "attributes": [
+        {
+          "key": "type",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:02.563+00:00",
+          "$updatedAt": "2026-03-19T03:44:02.671+00:00",
+          "size": 64,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "naatId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:02.968+00:00",
+          "$updatedAt": "2026-03-19T03:44:03.080+00:00",
+          "size": 64,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "audioId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:03.361+00:00",
+          "$updatedAt": "2026-03-19T03:44:03.485+00:00",
+          "size": 64,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": true,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:03.764+00:00",
+          "$updatedAt": "2026-03-19T03:44:03.868+00:00",
+          "size": 32,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "progress",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:21.577+00:00",
+          "$updatedAt": "2026-03-19T03:44:21.700+00:00",
+          "min": 0,
+          "max": 100,
+          "default": 0
+        },
+        {
+          "key": "attempts",
+          "type": "integer",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:21.966+00:00",
+          "$updatedAt": "2026-03-19T03:44:22.080+00:00",
+          "min": 0,
+          "max": 9223372036854776000,
+          "default": 0
+        },
+        {
+          "key": "workerId",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:22.369+00:00",
+          "$updatedAt": "2026-03-19T03:44:22.487+00:00",
+          "size": 128,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "leaseUntil",
+          "type": "datetime",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:22.766+00:00",
+          "$updatedAt": "2026-03-19T03:44:22.890+00:00",
+          "format": "",
+          "default": null
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:23.155+00:00",
+          "$updatedAt": "2026-03-19T03:44:23.266+00:00",
+          "size": 5000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "resultJson",
+          "type": "string",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:23.536+00:00",
+          "$updatedAt": "2026-03-19T10:33:11.136+00:00",
+          "size": 50000000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "startedAt",
+          "type": "datetime",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:23.959+00:00",
+          "$updatedAt": "2026-03-19T03:44:24.062+00:00",
+          "format": "",
+          "default": null
+        },
+        {
+          "key": "finishedAt",
+          "type": "datetime",
+          "status": "available",
+          "error": "",
+          "required": false,
+          "array": false,
+          "$createdAt": "2026-03-19T03:44:24.368+00:00",
+          "$updatedAt": "2026-03-19T03:44:24.496+00:00",
+          "format": "",
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "$id": "4952_12_type_status_created",
+          "$createdAt": "2026-03-19T03:44:24.793+00:00",
+          "$updatedAt": "2026-03-19T03:44:24.851+00:00",
+          "key": "type_status_created",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "type",
+            "status",
+            "$createdAt"
+          ],
+          "lengths": [
+            0,
+            0,
+            0
+          ],
+          "orders": [
+            "ASC",
+            "ASC",
+            "ASC"
+          ]
+        },
+        {
+          "$id": "4952_12_naatId_idx",
+          "$createdAt": "2026-03-19T03:44:25.012+00:00",
+          "$updatedAt": "2026-03-19T03:44:25.060+00:00",
+          "key": "naatId_idx",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "naatId"
+          ],
+          "lengths": [
+            0
+          ],
+          "orders": [
+            "ASC"
+          ]
+        },
+        {
+          "$id": "4952_12_status_lease_idx",
+          "$createdAt": "2026-03-19T03:44:25.217+00:00",
+          "$updatedAt": "2026-03-19T03:44:25.264+00:00",
+          "key": "status_lease_idx",
+          "type": "key",
+          "status": "available",
+          "error": "",
+          "attributes": [
+            "status",
+            "leaseUntil"
+          ],
+          "lengths": [
+            0,
+            0
+          ],
+          "orders": [
+            "ASC",
+            "ASC"
+          ]
+        }
+      ],
+      "permissions": []
+    }
+  ],
+  "buckets": [
+    {
+      "id": "audio-files",
+      "name": "Audio Files",
+      "enabled": true,
+      "maximumFileSize": 200000000,
+      "allowedFileExtensions": [],
+      "fileSecurity": false,
+      "compression": "none",
+      "encryption": false,
+      "antivirus": true,
+      "permissions": [
+        "read(\"any\")"
+      ]
+    },
+    {
+      "id": "tempbucket",
+      "name": "temp-bucket",
+      "enabled": true,
+      "maximumFileSize": 5000000000,
+      "allowedFileExtensions": [
+        "m4a",
+        "mp3",
+        "mp4",
+        "aac",
+        "wav"
+      ],
+      "fileSecurity": false,
+      "compression": "none",
+      "encryption": true,
+      "antivirus": true,
+      "permissions": [
+        "read(\"any\")"
+      ]
+    },
+    {
+      "id": "live-stream",
+      "name": "Live Stream",
+      "enabled": true,
+      "maximumFileSize": 5000000000,
+      "allowedFileExtensions": [
+        "ts",
+        "m3u8",
+        "m4s"
+      ],
+      "fileSecurity": false,
+      "compression": "none",
+      "encryption": true,
+      "antivirus": true,
+      "permissions": [
+        "read(\"any\")"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "id": "695bcca7003ab143a2d8",
+      "name": "ingest-videos",
+      "runtime": "node-22",
+      "enabled": true,
+      "entrypoint": "ingest-videos/src/main.js",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ]
+    },
+    {
+      "id": "695e920f00389d818548",
+      "name": "stream-audio",
+      "runtime": "node-22",
+      "enabled": true,
+      "entrypoint": "stream-audio/src/main.js",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "id": "69a8e8fd00250054f33c",
+      "name": "semantic-search",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "semantic-search/src/main.js",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29"
+      ]
+    },
+    {
+      "id": "69a9062f002c910aa1e5",
+      "name": "batch-embed",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "semantic-search/batch-embed.js",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "id": "69af8f44002b93d17eb5",
+      "name": "cutAudio",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "id": "69b2318e0017292fb26d",
+      "name": "naat-streaming",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [],
+      "environmentVariables": []
+    },
+    {
+      "id": "69b2493e00178e4a3f7a",
+      "name": "live-stream-metadata",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "id": "69b249810020fb62e36f",
+      "name": "live-stream-health",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "id": "69be4f83001133b55f36",
+      "name": "ai-jobs",
+      "runtime": "node-25",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [
+        "any"
+      ],
+      "environmentVariables": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19"
+      ]
+    },
+    {
+      "id": "69bf45110015fbdf326b",
+      "name": "upload-audio",
+      "runtime": "node-22",
+      "enabled": true,
+      "entrypoint": "src/main.ts",
+      "execute": [],
+      "environmentVariables": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25"
+      ]
+    }
+  ]
+}
