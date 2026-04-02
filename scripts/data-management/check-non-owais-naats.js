@@ -1,6 +1,6 @@
 /**
  * Script to check how many naats in the database don't contain
- * "owais raza", "owais qadri", or "owais raza qadri" in the title
+ * "naat production" in the title
  * for the "baghdadi sound and media" channel
  */
 

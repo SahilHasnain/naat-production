@@ -1,6 +1,6 @@
 # Database Check Script
 
-This script checks how many naats in your Appwrite database don't contain "Owais Raza", "Owais Qadri", or "Owais Raza Qadri" in the title, specifically for the "Baghdadi Sound and Media" channel.
+This script checks how many naats in your Appwrite database don't contain "Naat Production" in the title, specifically for the "Baghdadi Sound and Media" channel.
 
 ## Setup
 

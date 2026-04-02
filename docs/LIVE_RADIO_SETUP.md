@@ -214,7 +214,7 @@ client.subscribe("databases.*.collections.live_radio.documents", (response) => {
 Potential additions:
 
 - [ ] Scheduled programs (e.g., "Friday Special" at specific times)
-- [ ] Multiple channels (e.g., "Owais Raza Qadri Only" channel)
+- [ ] Multiple channels (e.g., "Naat Production Only" channel)
 - [ ] Real listener count tracking
 - [ ] Chat/comments during live playback
 - [ ] "Rewind" feature (buffer last 30 minutes)

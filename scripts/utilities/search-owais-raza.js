@@ -18,10 +18,10 @@ const databaseId = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
 const naatsCollectionId = process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID;
 
 // Search variations (including common spelling errors)
-// Each variation is independent - "owais raza" won't match "owais raza qadri"
+// Each variation is independent - "naat production" won't match other variations
 const searchVariations = [
-  { pattern: "owais raza", exact: true },
-  { pattern: "owais raza qadri", exact: false },
+  { pattern: "naat production", exact: true },
+  { pattern: "naat prod", exact: false },
   { pattern: "owais raza qadiri", exact: false },
   { pattern: "owais razaq", exact: true },
   { pattern: "owais razaq qadri", exact: false },

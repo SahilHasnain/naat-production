@@ -3,32 +3,32 @@ const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
-    return "com.owaisrazaqadri.dev";
+    return "com.naatproduction.dev";
   }
   if (IS_PREVIEW) {
-    return "com.owaisrazaqadri.preview";
+    return "com.naatproduction.preview";
   }
-  return "com.owaisrazaqadri";
+  return "com.naatproduction";
 };
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Owais Raza Qadri (Dev)";
+    return "Naat Production (Dev)";
   }
   if (IS_PREVIEW) {
-    return "Owais Raza Qadri (Preview)";
+    return "Naat Production (Preview)";
   }
-  return "Owais Raza Qadri";
+  return "Naat Production";
 };
 
 export default {
   expo: {
     name: getAppName(),
-    slug: "owais-raza-qadri",
+    slug: "naat-production",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/android-icon-foreground.png",
-    scheme: "ubaidraza",
+    scheme: "naatproduction",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -37,7 +37,7 @@ export default {
       infoPlist: {
         UIBackgroundModes: ["audio"],
       },
-      associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
+      associatedDomains: ["applinks:naatproduction.appwrite.network"],
     },
     android: {
       versionCode: 10,
@@ -61,7 +61,7 @@ export default {
           autoVerify: true,
           data: [
             {
-              scheme: "ubaidraza",
+              scheme: "naatproduction",
               host: "*",
             },
           ],
@@ -73,7 +73,7 @@ export default {
           data: [
             {
               scheme: "https",
-              host: "owaisrazaqadri.appwrite.network",
+              host: "naatproduction.appwrite.network",
               pathPrefix: "/naat",
             },
           ],
@@ -100,7 +100,7 @@ export default {
         "@sentry/react-native",
         {
           organization: "sahil-hasnain",
-          project: "ubaid-raza-naats",
+          project: "naat-production",
         },
       ],
       [
@@ -123,7 +123,7 @@ export default {
     extra: {
       router: {},
       eas: {
-       "projectId": "2c3222cc-907f-459e-a719-34f65d3045e1"
+      
       },
     },
   },

@@ -478,7 +478,7 @@ function shouldFilterVideo(isOfficial, title) {
     return false;
   }
 
-  // For non-official channels, only include videos with "Owais Qadri" or "Owais Raza Qadri"
+  // For non-official channels, only include videos with "Naat Production"
   const titleLower = title.toLowerCase();
 
   // Only 'O' starting variations allowed (no 'A' or 'U' variations)
