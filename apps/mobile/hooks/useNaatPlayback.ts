@@ -3,7 +3,6 @@ import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
-import { showErrorToast } from "@/utils/toast";
 import { hasAudio } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
@@ -47,7 +46,7 @@ export function useNaatPlayback(displayData: Naat[]) {
   const showVideoFallbackAlert = React.useCallback(
     (naat: Naat, audioId: string | undefined, message: string) => {
       Alert.alert("Audio Not Available", message, [
-        { text: "Cancel", style: "cancel", onPress: () => showErrorToast("Playback cancelled") },
+        { text: "Cancel", style: "cancel" },
         { text: "Play Video", onPress: () => navigateToVideo(naat, audioId, true) },
       ]);
     },
