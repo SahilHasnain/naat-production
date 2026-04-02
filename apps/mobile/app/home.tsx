@@ -170,7 +170,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
+  }, [filters.selectedFilter, filters.selectedChannelId, filters.audioOnly]);
 
   // Handle deep link auto-play
   useEffect(() => {
@@ -423,8 +423,8 @@ export default function HomeScreen() {
                     onChannelChange={filters.setSearchChannelId}
                     selectedDuration={filters.searchDuration}
                     onDurationChange={filters.setSearchDuration}
-                    pureOnly={filters.searchPureOnly}
-                    onPureOnlyChange={filters.setSearchPureOnly}
+                    audioOnly={filters.searchAudioOnly}
+                    onAudioOnlyChange={filters.setSearchAudioOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
@@ -439,8 +439,8 @@ export default function HomeScreen() {
                     channelsLoading={filters.channelsLoading}
                     selectedDuration={filters.selectedDuration}
                     onDurationChange={filters.setSelectedDuration}
-                    pureOnly={filters.pureOnly}
-                    onPureOnlyChange={filters.setPureOnly}
+                    audioOnly={filters.audioOnly}
+                    onAudioOnlyChange={filters.setAudioOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}

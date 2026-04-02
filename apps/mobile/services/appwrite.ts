@@ -65,15 +65,15 @@ export class AppwriteService implements IAppwriteService {
     offset: number = 0,
     sortBy: "latest" | "popular" | "oldest" = "latest",
     channelId?: string | null,
-    pureOnly?: boolean,
+    audioOnly?: boolean,
   ): Promise<Naat[]> {
     const channelKey = channelId || "all";
-    const pureKey = pureOnly ? "_pure" : "";
-    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}${pureKey}`;
+    const audioKey = audioOnly ? "_audio" : "";
+    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}${audioKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
+        () => this.baseService.getNaats(limit, offset, sortBy, channelId, audioOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,
@@ -146,18 +146,18 @@ export class AppwriteService implements IAppwriteService {
   /**
    * Searches for naats matching the provided query string
    */
-  async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
+  async searchNaats(query: string, channelId?: string | null, audioOnly?: boolean): Promise<Naat[]> {
     if (!query || query.trim() === "") {
       return [];
     }
 
     const channelKey = channelId || "all";
-    const pureKey = pureOnly ? "_pure" : "";
-    const cacheKey = `search_${channelKey}_${query}${pureKey}`;
+    const audioKey = audioOnly ? "_audio" : "";
+    const cacheKey = `search_${channelKey}_${query}${audioKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.searchNaats(query, channelId, pureOnly),
+        () => this.baseService.searchNaats(query, channelId, audioOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,

@@ -35,18 +35,18 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="ubaidraza"/>
-        <data android:scheme="exp+owais-raza-qadri"/>
+        <data android:scheme="naatproduction"/>
+        <data android:scheme="exp+naat-production-app"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="ubaidraza" android:host="*"/>
+        <data android:scheme="naatproduction" android:host="*"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="https" android:host="owaisrazaqadri.appwrite.network" android:pathPrefix="/naat"/>
+        <data android:scheme="https" android:host="naatproduction.appwrite.network" android:pathPrefix="/naat"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

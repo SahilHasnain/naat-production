@@ -11,8 +11,6 @@ local.properties
 *.iml
 *.hprof
 .cxx/
-release.keystore
 
 # Bundle artifacts
 *.jsbundle
-fastlane/play-store-key.json

@@ -23,14 +23,14 @@ const { InputFile } = require("node-appwrite/file");
 const { join } = require("path");
 
 // Load environment variables
-dotenv.config({ path: "apps/mobile/.env" });
+dotenv.config({ path: "apps/mobile/.env.local" });
 
 // Configuration
-const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
-const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
+const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
+const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
-const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID;
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
+const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID || process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID;
 const AUDIO_BUCKET_ID = "audio-files";
 
 // Parse command line arguments
@@ -129,11 +129,11 @@ async function uploadAudio(filePath, youtubeId) {
 
     console.log(`  File size: ${fileSizeMB}MB`);
 
-    const file = await storage.createFile({
-      bucketId: AUDIO_BUCKET_ID,
-      fileId: ID.unique(),
-      file: InputFile.fromPath(filePath, fileName),
-    });
+    const file = await storage.createFile(
+      AUDIO_BUCKET_ID,
+      ID.unique(),
+      InputFile.fromPath(filePath, fileName)
+    );
 
     console.log(`  ✓ Uploaded: ${file.$id}`);
     return file.$id;

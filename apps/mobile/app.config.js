@@ -24,7 +24,7 @@ const getAppName = () => {
 export default {
   expo: {
     name: getAppName(),
-    slug: "naat-production",
+    slug: "naat-production-app",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/android-icon-foreground.png",
@@ -123,7 +123,7 @@ export default {
     extra: {
       router: {},
       eas: {
-      
+       "projectId": "8ff89659-7bf9-486f-8357-1355af47b4e4"  
       },
     },
   },

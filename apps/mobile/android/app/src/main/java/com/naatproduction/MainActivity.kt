@@ -1,4 +1,4 @@
-package com.owaisrazaqadri
+package com.naatproduction
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
