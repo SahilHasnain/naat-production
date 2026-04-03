@@ -466,7 +466,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Share */}
+                  {/* SHARE BUTTON - COMMENTED OUT
                   <TouchableOpacity
                     onPress={async () => {
                       setShowOptionsMenu(false);
@@ -503,6 +503,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       </Text>
                     </View>
                   </TouchableOpacity>
+                  */}
 
                   {/* Repeat */}
                   <TouchableOpacity
