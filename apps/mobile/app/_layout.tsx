@@ -299,6 +299,12 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="naat"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="index"
           options={{
             href: null,
