@@ -17,6 +17,10 @@ interface Naat {
   audioId?: string;
 }
 
+interface ChannelNameDocument {
+  channelName?: string;
+}
+
 type ExcludeFilter = "all" | "included" | "excluded";
 type SortOption = "latest" | "popular" | "oldest" | "random";
 
@@ -102,10 +106,11 @@ export default function ExcludeNaatsClient() {
         [Query.select(["channelName"]), Query.limit(5000)],
       );
 
+      const channelDocuments = channelResponse.documents as unknown as ChannelNameDocument[];
       const uniqueChannels = Array.from(
         new Set(
-          channelResponse.documents
-            .map((doc: { channelName?: string }) => doc.channelName)
+          channelDocuments
+            .map((doc) => doc.channelName)
             .filter((value): value is string => Boolean(value)),
         ),
       ).sort();
