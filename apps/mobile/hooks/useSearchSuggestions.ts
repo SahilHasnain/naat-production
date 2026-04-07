@@ -7,7 +7,6 @@ import {
   SearchHistoryItem,
 } from "@/services/searchHistory";
 import { type Naat } from "@/types";
-import { searchItems } from "@naat-collection/shared";
 import { useCallback, useEffect, useState } from "react";
 
 interface UseSearchSuggestionsOptions {
@@ -16,7 +15,7 @@ interface UseSearchSuggestionsOptions {
 }
 
 export function useSearchSuggestions({
-  naats,
+  naats: _naats,
   maxSuggestions = 10,
 }: UseSearchSuggestionsOptions) {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
@@ -32,63 +31,24 @@ export function useSearchSuggestions({
     setHistory(historyItems);
   };
 
-  /**
-   * Generate suggestions based on query
-   * - If query is empty, ALWAYS show recent search history (regardless of disable flag)
-   * - If query has text, show matching naats using same algorithm as search (unless disabled)
-   */
   const generateSuggestions = useCallback(
-    (query: string): SearchSuggestion[] => {
-      const trimmedQuery = query.trim();
-
-      // ALWAYS show history when query is empty (ignore disable flag for history)
-      if (!trimmedQuery) {
-        return history.slice(0, maxSuggestions).map((item) => ({
-          id: item.id,
-          text: item.query,
-          type: "history" as const,
-        }));
-      }
-
-      // Check if search suggestions are disabled (only affects suggestions while typing, NOT history)
-      const disableSuggestions = process.env.EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS === "true";
-      
-      if (disableSuggestions) {
-        return [];
-      }
-
-      // Use the same search algorithm as the main search
-      const searchResults = searchItems(naats, trimmedQuery, {
-        searchInChannel: true,
-        minScore: 60,
-      });
-
-      // Return top suggestions
-      return searchResults.slice(0, maxSuggestions).map((naat: Naat) => ({
-        id: naat.$id,
-        text: naat.title,
-        thumbnailUrl: naat.thumbnailUrl,
-        type: "suggestion" as const,
+    (): SearchSuggestion[] => {
+      return history.slice(0, maxSuggestions).map((item) => ({
+        id: item.id,
+        text: item.query,
+        type: "history" as const,
       }));
     },
-    [history, naats, maxSuggestions],
+    [history, maxSuggestions],
   );
 
-  // Update suggestions when history changes
   useEffect(() => {
-    if (history.length > 0) {
-      const newSuggestions = generateSuggestions("");
-      setSuggestions(newSuggestions);
-    }
+    setSuggestions(generateSuggestions());
   }, [history, generateSuggestions]);
 
-  /**
-   * Update suggestions based on query
-   */
   const updateSuggestions = useCallback(
-    (query: string) => {
-      const newSuggestions = generateSuggestions(query);
-      setSuggestions(newSuggestions);
+    (_query: string) => {
+      setSuggestions(generateSuggestions());
     },
     [generateSuggestions],
   );

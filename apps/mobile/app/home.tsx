@@ -103,8 +103,10 @@ export default function HomeScreen() {
         String(shownCount + 1),
       );
 
+      // Show hint after a short delay to let the UI settle
       setTimeout(() => {
         setShowDownloadHint(true);
+        // Auto-hide hint after 5 seconds
         setTimeout(() => {
           setShowDownloadHint(false);
         }, 5000);
@@ -281,7 +283,6 @@ export default function HomeScreen() {
   const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
     ({ item, index }) => {
       const ds = downloadStates[item.$id];
-      const isFirstCard = index === 0;
       const isLeftColumn = index % NUM_COLUMNS === 0;
 
       return (
@@ -292,35 +293,6 @@ export default function HomeScreen() {
             marginRight: isLeftColumn ? 6 : 16,
           }}
         >
-          {/* First-time hint - only on first card */}
-          {isFirstCard && showDownloadHint && (
-            <View className="mb-3" style={{ marginRight: -6 }}>
-              <View
-                className="rounded-lg px-3 py-2.5 flex-row items-center"
-                style={{ backgroundColor: colors.accent.primary }}
-              >
-                <Ionicons
-                  name="information-circle"
-                  size={18}
-                  color={colors.text.primary}
-                />
-                <Text
-                  className="text-xs font-medium ml-2 flex-1"
-                  style={{ color: colors.text.primary }}
-                >
-                  Long press any card for download and quick play actions
-                </Text>
-                <TouchableOpacity onPress={dismissHint} className="ml-2 p-1">
-                  <Ionicons
-                    name="close"
-                    size={18}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
           <NaatCard
             id={item.$id}
             title={item.title}
@@ -345,8 +317,6 @@ export default function HomeScreen() {
       handleCardLongPress,
       handleDownload,
       downloadStates,
-      showDownloadHint,
-      dismissHint,
       NUM_COLUMNS,
     ],
   );
@@ -460,6 +430,33 @@ export default function HomeScreen() {
                 </>
               ) : !isSearchActive ? (
                 <>
+                  {showDownloadHint && (
+                    <View className="mx-4 mb-3">
+                      <View
+                        className="rounded-lg px-3 py-2.5 flex-row items-center"
+                        style={{ backgroundColor: colors.accent.primary }}
+                      >
+                        <Ionicons
+                          name="information-circle"
+                          size={18}
+                          color={colors.text.primary}
+                        />
+                        <Text
+                          className="text-xs font-medium ml-2 flex-1"
+                          style={{ color: colors.text.primary }}
+                        >
+                          Long press any card for download and quick play actions
+                        </Text>
+                        <TouchableOpacity onPress={dismissHint} className="ml-2 p-1">
+                          <Ionicons
+                            name="close"
+                            size={18}
+                            color={colors.text.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                   <UnifiedFilterBar
                     selectedSort={filters.selectedFilter}
                     onSortChange={filters.setSelectedFilter}
@@ -559,6 +556,5 @@ export default function HomeScreen() {
     </View>
   );
 }
-
 
 
