@@ -66,6 +66,14 @@
         "EXPO_PUBLIC_SENTRY_DSN": "https://e97d8df8068921740badaaa919139fc9@o4509954219966464.ingest.de.sentry.io/4510817353203792",
         "SENTRY_AUTH_TOKEN": "@SENTRY_AUTH_TOKEN"
       }
+    },
+    "development-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "environment": "development"
     }
   },
   "submit": {

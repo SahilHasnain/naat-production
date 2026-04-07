@@ -80,6 +80,7 @@ export default function HomeScreen() {
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
     {
+      naats: filters.naats,
       maxSuggestions: 10,
     },
   );
@@ -88,19 +89,26 @@ export default function HomeScreen() {
 
   const checkFirstTimeHint = useCallback(async () => {
     try {
-      const hasSeenHint = await AsyncStorage.getItem(
-        "naat_card_download_hint-shown",
+      const rawShownCount = await AsyncStorage.getItem(
+        "naat_card_download_hint-count",
       );
-      if (!hasSeenHint && filters.displayData.length > 0) {
-        // Show hint after a short delay to let the UI settle
-        setTimeout(() => {
-          setShowDownloadHint(true);
-          // Auto-hide hint after 5 seconds
-          setTimeout(() => {
-            setShowDownloadHint(false);
-          }, 5000);
-        }, 1000);
+      const shownCount = rawShownCount ? Number(rawShownCount) : 0;
+
+      if (shownCount >= 3 || filters.displayData.length === 0) {
+        return;
       }
+
+      await AsyncStorage.setItem(
+        "naat_card_download_hint-count",
+        String(shownCount + 1),
+      );
+
+      setTimeout(() => {
+        setShowDownloadHint(true);
+        setTimeout(() => {
+          setShowDownloadHint(false);
+        }, 5000);
+      }, 1000);
     } catch (error) {
       console.log("Error checking first-time hint:", error);
     }
@@ -108,7 +116,6 @@ export default function HomeScreen() {
 
   const dismissHint = useCallback(async () => {
     try {
-      await AsyncStorage.setItem("naat_card_download_hint-shown", "true");
       setShowDownloadHint(false);
     } catch (error) {
       console.log("Error saving hint preference:", error);
@@ -123,7 +130,7 @@ export default function HomeScreen() {
   // --- Search orchestration effects ---
 
   useEffect(() => {
-    if (isSearchActive) updateSuggestions();
+    if (isSearchActive) updateSuggestions(searchInput);
   }, [searchInput, isSearchActive, updateSuggestions]);
 
   useEffect(() => {
@@ -176,7 +183,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
+  }, [filters.selectedFilter, filters.selectedChannelId, filters.audioOnly]);
 
   useEffect(() => {
     const autoPlayNaatId =
@@ -446,8 +453,8 @@ export default function HomeScreen() {
                     onChannelChange={filters.setSearchChannelId}
                     selectedDuration={filters.searchDuration}
                     onDurationChange={filters.setSearchDuration}
-                    pureOnly={filters.searchPureOnly}
-                    onPureOnlyChange={filters.setSearchPureOnly}
+                    audioOnly={filters.searchAudioOnly}
+                    onAudioOnlyChange={filters.setSearchAudioOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
@@ -462,8 +469,8 @@ export default function HomeScreen() {
                     channelsLoading={filters.channelsLoading}
                     selectedDuration={filters.selectedDuration}
                     onDurationChange={filters.setSelectedDuration}
-                    pureOnly={filters.pureOnly}
-                    onPureOnlyChange={filters.setPureOnly}
+                    audioOnly={filters.audioOnly}
+                    onAudioOnlyChange={filters.setAudioOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}
@@ -552,3 +559,6 @@ export default function HomeScreen() {
     </View>
   );
 }
+
+
+
