@@ -12,6 +12,7 @@ const APPWRITE_PROJECT_ID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
 const DATABASE_ID = process.env.EXPO_PUBLIC_DATABASE_ID;
 const COLLECTION_ID = process.env.EXPO_PUBLIC_COLLECTION_ID;
+const INGEST_MAX_RESULTS = parseInt(process.env.INGEST_MAX_RESULTS || "5000", 10);
 
 function validateEnv() {
   const required = [
@@ -296,7 +297,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
   console.log(`\n📺 Processing channel: ${channelId}`);
   console.log("   Fetching videos from YouTube...");
 
-  const channelData = await fetchYouTubeVideos(channelId);
+  const channelData = await fetchYouTubeVideos(channelId, INGEST_MAX_RESULTS);
   const { channelName, videos } = channelData;
 
   console.log(
@@ -492,3 +493,4 @@ async function ingestVideos() {
 }
 
 ingestVideos();
+
