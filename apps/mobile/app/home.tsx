@@ -26,15 +26,17 @@ import {
   ActivityIndicator,
   BackHandler,
   FlatList,
+  ListRenderItem,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
+  const NUM_COLUMNS = 2;
   const router = useRouter();
   const params = useLocalSearchParams<{
     autoPlayNaatId?: string;
@@ -78,7 +80,6 @@ export default function HomeScreen() {
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
     {
-      naats: filters.naats,
       maxSuggestions: 10,
     },
   );
@@ -122,7 +123,7 @@ export default function HomeScreen() {
   // --- Search orchestration effects ---
 
   useEffect(() => {
-    if (isSearchActive) updateSuggestions(searchInput);
+    if (isSearchActive) updateSuggestions();
   }, [searchInput, isSearchActive, updateSuggestions]);
 
   useEffect(() => {
@@ -175,7 +176,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId, filters.audioOnly]);
+  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
 
   useEffect(() => {
     const autoPlayNaatId =
@@ -270,16 +271,23 @@ export default function HomeScreen() {
 
   // --- Render helpers ---
 
-  const renderNaatCard = React.useCallback(
-    ({ item, index }: { item: Naat; index: number }) => {
+  const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
+    ({ item, index }) => {
       const ds = downloadStates[item.$id];
       const isFirstCard = index === 0;
+      const isLeftColumn = index % NUM_COLUMNS === 0;
 
       return (
-        <View>
+        <View
+          style={{
+            flex: 1,
+            marginLeft: isLeftColumn ? 16 : 6,
+            marginRight: isLeftColumn ? 6 : 16,
+          }}
+        >
           {/* First-time hint - only on first card */}
           {isFirstCard && showDownloadHint && (
-            <View className="mx-4 mb-3">
+            <View className="mb-3" style={{ marginRight: -6 }}>
               <View
                 className="rounded-lg px-3 py-2.5 flex-row items-center"
                 style={{ backgroundColor: colors.accent.primary }}
@@ -332,6 +340,7 @@ export default function HomeScreen() {
       downloadStates,
       showDownloadHint,
       dismissHint,
+      NUM_COLUMNS,
     ],
   );
 
@@ -415,10 +424,12 @@ export default function HomeScreen() {
 
       <View className="flex-1">
         <FlatList
+          key={`naat-grid-${NUM_COLUMNS}`}
           ref={flatListRef}
           data={filters.displayData}
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
+          numColumns={NUM_COLUMNS}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
@@ -435,8 +446,8 @@ export default function HomeScreen() {
                     onChannelChange={filters.setSearchChannelId}
                     selectedDuration={filters.searchDuration}
                     onDurationChange={filters.setSearchDuration}
-                    audioOnly={filters.searchAudioOnly}
-                    onAudioOnlyChange={filters.setSearchAudioOnly}
+                    pureOnly={filters.searchPureOnly}
+                    onPureOnlyChange={filters.setSearchPureOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
@@ -451,8 +462,8 @@ export default function HomeScreen() {
                     channelsLoading={filters.channelsLoading}
                     selectedDuration={filters.selectedDuration}
                     onDurationChange={filters.setSelectedDuration}
-                    audioOnly={filters.audioOnly}
-                    onAudioOnlyChange={filters.setAudioOnly}
+                    pureOnly={filters.pureOnly}
+                    onPureOnlyChange={filters.setPureOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}
@@ -490,6 +501,7 @@ export default function HomeScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={10}
+          columnWrapperStyle={{ alignItems: "flex-start" }}
         />
       </View>
 
