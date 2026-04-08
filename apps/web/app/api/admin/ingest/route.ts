@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
           env: {
             ...process.env,
             YOUTUBE_CHANNEL_IDS: channelIds.join(","),
+            EXPO_PUBLIC_DATABASE_ID:
+              process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || process.env.EXPO_PUBLIC_DATABASE_ID,
+            EXPO_PUBLIC_COLLECTION_ID:
+              process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || process.env.EXPO_PUBLIC_COLLECTION_ID,
             ...(body.limit ? { INGEST_MAX_RESULTS: String(body.limit) } : {}),
           },
         });

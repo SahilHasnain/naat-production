@@ -41,7 +41,6 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
   const channelName = String(body.channelName || "").trim();
   const type = body.type === "playlist" ? "playlist" : "channel";
   const playlistId = String(body.playlistId || "").trim();
-  const isOfficial = Boolean(body.isOfficial);
   const isOther = Boolean(body.isOther);
 
   if (!channelId) {
@@ -60,7 +59,6 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
     channelId,
     channelName,
     type,
-    isOfficial,
     isOther,
     ...(type === "playlist" ? { playlistId } : {}),
   };

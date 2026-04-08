@@ -7,7 +7,6 @@ interface ChannelOption {
   channelId: string;
   channelName: string;
   type: "channel" | "playlist";
-  isOfficial: boolean;
   isOther: boolean;
 }
 
@@ -32,6 +31,7 @@ export default function IngestClient() {
   const [limit, setLimit] = useState(250);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [cleaningShorts, setCleaningShorts] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [exitCode, setExitCode] = useState<number | null>(null);
 
@@ -46,7 +46,7 @@ export default function IngestClient() {
       const data = await response.json();
       const channelList = (data.channels || []) as ChannelOption[];
       setChannels(channelList);
-      setSelectedChannels(channelList.filter((item) => item.isOfficial).map((item) => item.channelId));
+      setSelectedChannels(channelList.map((item) => item.channelId));
     } finally {
       setLoading(false);
     }
@@ -116,6 +116,34 @@ export default function IngestClient() {
     }
   }
 
+  async function cleanupShorts() {
+    if (cleaningShorts || running) return;
+    const confirmed = window.confirm("Delete all short naat documents (<60s) and any linked audio files?");
+    if (!confirmed) return;
+
+    setCleaningShorts(true);
+    addLog("Starting shorts cleanup...");
+
+    try {
+      const response = await fetch("/api/admin/ingest/cleanup-shorts", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to cleanup shorts");
+      }
+
+      addLog(
+        `Shorts cleanup complete: ${data.deletedDocuments} documents, ${data.deletedAudioFiles} audio files, ${data.deletedCutAudioFiles} cut audio files deleted.`,
+      );
+    } catch (error) {
+      addLog(error instanceof Error ? error.message : "Shorts cleanup failed");
+    } finally {
+      setCleaningShorts(false);
+    }
+  }
+
   const selectedCount = useMemo(() => selectedChannels.length, [selectedChannels]);
 
   return (
@@ -135,6 +163,17 @@ export default function IngestClient() {
           className="rounded-full border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? "Running..." : "Start Ingest"}
+        </button>
+      </div>
+
+      <div className="mb-6 flex justify-end">
+        <button
+          type="button"
+          onClick={cleanupShorts}
+          disabled={cleaningShorts || running}
+          className="rounded-full border border-red-400/25 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:border-red-300/40 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cleaningShorts ? "Cleaning Shorts..." : "Cleanup Shorts"}
         </button>
       </div>
 
@@ -202,7 +241,6 @@ export default function IngestClient() {
                   <div className="mt-1 truncate font-mono text-xs text-neutral-500">{channel.channelId}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-neutral-300">{channel.type}</span>
-                    {channel.isOfficial ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-200">Official</span> : null}
                     {channel.isOther ? <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-200">Other</span> : null}
                   </div>
                 </div>

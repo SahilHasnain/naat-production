@@ -27,7 +27,6 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
   return {
     channelName,
     type,
-    isOfficial: Boolean(body.isOfficial),
     isOther: Boolean(body.isOther),
     ...(type === "playlist" ? { playlistId } : { playlistId: null }),
   };

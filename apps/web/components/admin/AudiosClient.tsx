@@ -29,6 +29,7 @@ export default function AudiosClient() {
   const [stats, setStats] = useState<AudioStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [cleaningOrphaned, setCleaningOrphaned] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [limitEnabled, setLimitEnabled] = useState(true);
   const [limit, setLimit] = useState(10);
@@ -108,6 +109,33 @@ export default function AudiosClient() {
     }
   }
 
+  async function cleanupOrphanedAudio() {
+    if (cleaningOrphaned || running) return;
+    const confirmed = window.confirm("Delete orphaned audio files from storage?");
+    if (!confirmed) return;
+
+    setCleaningOrphaned(true);
+    addLog("Starting orphaned audio cleanup...");
+
+    try {
+      const response = await fetch("/api/admin/audios/cleanup-orphaned", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to cleanup orphaned audio");
+      }
+
+      addLog(`Orphaned audio cleanup complete: ${data.deletedCount} files deleted.`);
+      await fetchStats();
+    } catch (error) {
+      addLog(error instanceof Error ? error.message : "Orphaned audio cleanup failed");
+    } finally {
+      setCleaningOrphaned(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -117,14 +145,24 @@ export default function AudiosClient() {
             Inspect audio coverage and run the existing `scripts/utilities/download-audio.js` batch job with live streamed logs.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={startAudioRun}
-          disabled={running}
-          className="rounded-full border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {running ? "Running..." : testMode ? "Start Test Batch" : "Start Audio Batch"}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={cleanupOrphanedAudio}
+            disabled={cleaningOrphaned || running}
+            className="rounded-full border border-red-400/25 bg-red-500/10 px-5 py-2.5 text-sm font-medium text-red-200 transition hover:border-red-300/40 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {cleaningOrphaned ? "Cleaning Orphaned..." : "Cleanup Orphaned"}
+          </button>
+          <button
+            type="button"
+            onClick={startAudioRun}
+            disabled={running || cleaningOrphaned}
+            className="rounded-full border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {running ? "Running..." : testMode ? "Start Test Batch" : "Start Audio Batch"}
+          </button>
+        </div>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">

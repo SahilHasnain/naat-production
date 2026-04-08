@@ -85,7 +85,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPPLY_JSON_KEY: ${{ vars.PLAY_STORE_JSON_KEY_PATH || '/home/Sahilhasnain/android-secrets/play-store-key.json' }}
           ANDROID_APPLICATION_ID: ${{ vars.ANDROID_APPLICATION_ID || 'com.naatproduction' }}
-          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'internal' }}
+          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'alpha' }}
           SKIP_ANDROID_BUILD: "true"
           ANDROID_KEYSTORE_PATH: ${{ vars.ANDROID_KEYSTORE_PATH || '/home/Sahilhasnain/android-secrets/naat-production/release.keystore' }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

@@ -8,7 +8,6 @@ interface ChannelRow {
   channelName: string;
   type: "channel" | "playlist";
   playlistId?: string;
-  isOfficial: boolean;
   isOther: boolean;
   naatCount: number;
   withAudioCount: number;
@@ -20,7 +19,6 @@ interface ChannelFormState {
   channelName: string;
   type: "channel" | "playlist";
   playlistId: string;
-  isOfficial: boolean;
   isOther: boolean;
 }
 
@@ -29,7 +27,6 @@ const emptyForm: ChannelFormState = {
   channelName: "",
   type: "channel",
   playlistId: "",
-  isOfficial: false,
   isOther: false,
 };
 
@@ -61,10 +58,9 @@ export default function ChannelManagement() {
   const summary = useMemo(() => {
     const totalNaats = channels.reduce((sum, channel) => sum + channel.naatCount, 0);
     const totalWithAudio = channels.reduce((sum, channel) => sum + channel.withAudioCount, 0);
-    const officialCount = channels.filter((channel) => channel.isOfficial).length;
     const otherCount = channels.filter((channel) => channel.isOther).length;
 
-    return { totalNaats, totalWithAudio, officialCount, otherCount };
+    return { totalNaats, totalWithAudio, otherCount };
   }, [channels]);
 
   async function fetchChannels() {
@@ -101,7 +97,6 @@ export default function ChannelManagement() {
       channelName: channel.channelName,
       type: channel.type,
       playlistId: channel.playlistId || "",
-      isOfficial: channel.isOfficial,
       isOther: channel.isOther,
     });
     setEditingChannel(channel);
@@ -137,7 +132,6 @@ export default function ChannelManagement() {
         channelName: form.channelName.trim(),
         type: form.type,
         playlistId: form.type === "playlist" ? form.playlistId.trim() : undefined,
-        isOfficial: form.isOfficial,
         isOther: form.isOther,
       };
 
@@ -184,14 +178,10 @@ export default function ChannelManagement() {
         </button>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="text-sm text-neutral-400">Sources</div>
           <div className="mt-2 text-3xl font-semibold text-white">{channels.length}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="text-sm text-neutral-400">Official</div>
-          <div className="mt-2 text-3xl font-semibold text-emerald-300">{summary.officialCount}</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="text-sm text-neutral-400">Other Tab</div>
@@ -270,13 +260,10 @@ export default function ChannelManagement() {
                       </td>
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-wrap gap-2">
-                          {channel.isOfficial ? (
-                            <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-200">Official</span>
-                          ) : null}
                           {channel.isOther ? (
                             <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-200">Other</span>
                           ) : null}
-                          {!channel.isOfficial && !channel.isOther ? (
+                          {!channel.isOther ? (
                             <span className="rounded-full bg-white/[0.04] px-3 py-1 text-xs font-medium text-neutral-400">Standard</span>
                           ) : null}
                         </div>
@@ -360,16 +347,7 @@ export default function ChannelManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neutral-200">
-                  <input
-                    type="checkbox"
-                    checked={form.isOfficial}
-                    onChange={(event) => setForm((current) => ({ ...current, isOfficial: event.target.checked }))}
-                    className="h-4 w-4 rounded border-white/20 bg-transparent"
-                  />
-                  Mark as official
-                </label>
+              <div className="grid grid-cols-1 gap-3">
                 <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neutral-200">
                   <input
                     type="checkbox"

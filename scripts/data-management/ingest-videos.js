@@ -49,6 +49,44 @@ function initAppwrite() {
   return new Databases(client);
 }
 
+async function getShortsVideoIds(channelId) {
+  const baseUrl = "https://www.googleapis.com/youtube/v3";
+  const shortsPlaylistId = channelId.replace("UC", "UUSH");
+  const shortsIds = new Set();
+
+  try {
+    let pageToken = null;
+
+    do {
+      let playlistUrl = `${baseUrl}/playlistItems?part=contentDetails&playlistId=${shortsPlaylistId}&maxResults=50&key=${YOUTUBE_API_KEY}`;
+
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+
+      const response = await fetch(playlistUrl);
+
+      if (!response.ok) {
+        break;
+      }
+
+      const data = await response.json();
+
+      if (data.items && data.items.length > 0) {
+        data.items.forEach((item) => {
+          shortsIds.add(item.contentDetails.videoId);
+        });
+      }
+
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+  } catch (error) {
+    // Shorts playlist might not exist for the channel
+  }
+
+  return shortsIds;
+}
+
 async function fetchYouTubeVideos(channelId, maxResults = 5000) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
@@ -73,6 +111,7 @@ async function fetchYouTubeVideos(channelId, maxResults = 5000) {
     const channelName = channelData.items[0].snippet.title;
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
+    const shortsIds = await getShortsVideoIds(channelId);
 
     // Fetch videos from the uploads playlist with pagination
     const allVideoItems = [];
@@ -100,7 +139,11 @@ async function fetchYouTubeVideos(channelId, maxResults = 5000) {
         break;
       }
 
-      allVideoItems.push(...playlistData.items);
+      const filteredItems = playlistData.items.filter(
+        (item) => !shortsIds.has(item.contentDetails.videoId),
+      );
+
+      allVideoItems.push(...filteredItems);
       console.log(`   Fetched ${allVideoItems.length} videos so far...`);
 
       pageToken = playlistData.nextPageToken;
@@ -315,6 +358,13 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
     const title = video.snippet.title;
     const newViews = parseInt(video.statistics?.viewCount || "0", 10);
     const duration = parseDuration(video.contentDetails.duration);
+
+    // Filter out shorts
+    if (duration < 60) {
+      console.log(`   🚫 Filtered: ${title} (duration ${duration}s < 60s short)`);
+      filteredCount++;
+      continue;
+    }
 
     // Filter out videos greater than 1 hour (3600 seconds)
     if (duration > 3600) {
