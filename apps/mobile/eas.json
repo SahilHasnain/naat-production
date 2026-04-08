@@ -51,7 +51,7 @@
     },
     "production": {
       "autoIncrement": false,
-      "credentialsSource": "local",
+      "credentialsSource": "remote",
       "env": {
         "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
         "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
