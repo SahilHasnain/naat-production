@@ -50,6 +50,9 @@ export default function ChannelManagement() {
   const [editingChannel, setEditingChannel] = useState<ChannelRow | null>(null);
   const [form, setForm] = useState<ChannelFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deletingChannel, setDeletingChannel] = useState<ChannelRow | null>(null);
+  const [deleteProgress, setDeleteProgress] = useState<string>("");
+  const [deleteOptions, setDeleteOptions] = useState({ deleteChannel: true, deleteNaats: false, deleteAudioFiles: false });
 
   useEffect(() => {
     void fetchChannels();
@@ -108,6 +111,91 @@ export default function ChannelManagement() {
     setEditingChannel(null);
     setForm(emptyForm);
     setSaving(false);
+  }
+
+  function openDeleteModal(channel: ChannelRow) {
+    setDeletingChannel(channel);
+    setDeleteProgress("");
+    setDeleteOptions({ deleteChannel: true, deleteNaats: false, deleteAudioFiles: false });
+  }
+
+  function closeDeleteModal() {
+    setDeletingChannel(null);
+    setDeleteProgress("");
+    setDeleteOptions({ deleteChannel: true, deleteNaats: false, deleteAudioFiles: false });
+  }
+
+  async function handleDelete() {
+    if (!deletingChannel) return;
+
+    try {
+      setDeleteProgress("Starting deletion...");
+
+      const response = await fetch(`/api/admin/channels/${encodeURIComponent(deletingChannel.$id)}/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deleteOptions),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start deletion");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("No response stream");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.type === "progress") {
+              setDeleteProgress(data.message);
+            } else if (data.type === "channel_found") {
+              setDeleteProgress(`Found channel: ${data.channel.name}`);
+            } else if (data.type === "naats_found") {
+              setDeleteProgress(`Found ${data.count} naat(s)`);
+            } else if (data.type === "naat_progress") {
+              setDeleteProgress(data.message);
+            } else if (data.type === "naats_deleted") {
+              setDeleteProgress(
+                `Deleted ${data.deletedCount} naats, ${data.audioDeletedCount} audio files`
+              );
+            } else if (data.type === "channel_deleted") {
+              setDeleteProgress(data.message);
+            } else if (data.type === "channel_kept") {
+              setDeleteProgress(data.message);
+            } else if (data.type === "complete") {
+              const msg = deleteOptions.deleteChannel
+                ? `✅ Complete! Deleted channel, ${data.summary.naatsDeleted} naats, ${data.summary.audioFilesDeleted} audio files`
+                : `✅ Complete! Deleted ${data.summary.naatsDeleted} naats, ${data.summary.audioFilesDeleted} audio files (channel kept)`;
+              setDeleteProgress(msg);
+              setTimeout(() => {
+                closeDeleteModal();
+                void fetchChannels();
+              }, 2000);
+            } else if (data.type === "error") {
+              setError(data.message);
+              setDeleteProgress(`❌ Error: ${data.message}`);
+            }
+          }
+        }
+      }
+    } catch (deleteError) {
+      console.error("Error deleting channel:", deleteError);
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete channel");
+      setDeleteProgress(`❌ Error: ${deleteError instanceof Error ? deleteError.message : "Unknown error"}`);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -272,10 +360,10 @@ export default function ChannelManagement() {
                       <td className="px-6 py-4 text-right align-top">
                         <button
                           type="button"
-                          onClick={() => openEditModal(channel)}
-                          className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-neutral-200 transition hover:border-white/20 hover:bg-white/[0.05] hover:text-white"
+                          onClick={() => openDeleteModal(channel)}
+                          className="rounded-full border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:border-red-400/50 hover:bg-red-500/20"
                         >
-                          Edit
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -376,6 +464,127 @@ export default function ChannelManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deletingChannel ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-3xl border border-red-400/20 bg-neutral-950 shadow-2xl shadow-black/40">
+            <div className="flex items-center justify-between border-b border-red-400/20 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-semibold text-red-200">Delete Channel</h2>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Permanently delete "{deletingChannel.channelName}"
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleteProgress.length > 0}
+                className="text-sm text-neutral-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-5 px-6 py-6">
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <div className="flex gap-3">
+                  <div className="text-amber-400">⚠️</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-200">Warning: This action cannot be undone</p>
+                    <p className="mt-1 text-xs text-amber-300/80">
+                      This channel has {deletingChannel.naatCount} naat(s) and {deletingChannel.withAudioCount} audio file(s).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neutral-200">
+                  <input
+                    type="checkbox"
+                    checked={deleteOptions.deleteNaats}
+                    onChange={(e) =>
+                      setDeleteOptions((prev) => ({ ...prev, deleteNaats: e.target.checked }))
+                    }
+                    disabled={deleteProgress.length > 0}
+                    className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Delete all naats from this channel</div>
+                    <div className="mt-1 text-xs text-neutral-400">
+                      This will delete {deletingChannel.naatCount} naat document(s) from the database
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neutral-200">
+                  <input
+                    type="checkbox"
+                    checked={deleteOptions.deleteAudioFiles}
+                    onChange={(e) =>
+                      setDeleteOptions((prev) => ({ ...prev, deleteAudioFiles: e.target.checked }))
+                    }
+                    disabled={deleteProgress.length > 0 || !deleteOptions.deleteNaats}
+                    className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Delete associated audio files</div>
+                    <div className="mt-1 text-xs text-neutral-400">
+                      This will delete {deletingChannel.withAudioCount} audio file(s) from storage
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-neutral-200">
+                  <input
+                    type="checkbox"
+                    checked={deleteOptions.deleteChannel}
+                    onChange={(e) =>
+                      setDeleteOptions((prev) => ({ ...prev, deleteChannel: e.target.checked }))
+                    }
+                    disabled={deleteProgress.length > 0}
+                    className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-red-200">Delete the channel document</div>
+                    <div className="mt-1 text-xs text-red-300/70">
+                      This will remove the channel from your sources list
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {deleteProgress ? (
+                <div className="rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-sky-400" />
+                    <p className="text-sm text-sky-200">{deleteProgress}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={deleteProgress.length > 0}
+                  className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-neutral-300 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleteProgress.length > 0}
+                  className="rounded-full border border-red-400/30 bg-red-500/15 px-5 py-2 text-sm font-medium text-red-200 transition hover:border-red-400/50 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleteProgress.length > 0 ? "Processing..." : "Confirm Delete"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
