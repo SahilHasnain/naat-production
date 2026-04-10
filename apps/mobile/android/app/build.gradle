@@ -67,6 +67,14 @@ react {
  * Set this to true in release builds to optimize the app using [R8](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization).
  */
 def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBuilds') ?: false).toBoolean()
+def appVariant = System.getenv("APP_VARIANT")
+def androidApplicationId = "com.naatproduction"
+
+if (appVariant == "development") {
+    androidApplicationId = "com.naatproduction.dev"
+} else if (appVariant == "preview") {
+    androidApplicationId = "com.naatproduction.preview"
+}
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -91,7 +99,7 @@ android {
 
     namespace 'com.naatproduction'
     defaultConfig {
-        applicationId 'com.naatproduction'
+        applicationId androidApplicationId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 11
