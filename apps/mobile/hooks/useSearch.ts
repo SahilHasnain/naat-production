@@ -60,7 +60,9 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
    * Perform semantic search using AI or fallback to client-side
    */
   const performSemanticSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
+    const normalizedQuery = searchQuery.trim();
+
+    if (!normalizedQuery) {
       setResults([]);
       setLoading(false);
       return;
@@ -72,7 +74,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       // Use semantic search if enabled, otherwise use client-side
       if (useSemanticSearch) {
         console.log("[Search] Using semantic search");
-        const searchResults = await appwriteService.semanticSearch(searchQuery);
+        const searchResults = await appwriteService.semanticSearch(normalizedQuery);
         
         // Filter by channel if specified
         let filteredResults = channelId
@@ -90,7 +92,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       } else {
         console.log("[Search] Using client-side search");
         // Use client-side search
-        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
+        const searchResults = searchItems(allNaatsRef.current, normalizedQuery, {
           searchInChannel: true,
           minScore: 60,
         });
@@ -104,7 +106,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       
       // Fallback to client-side search on any error
       try {
-        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
+        const searchResults = searchItems(allNaatsRef.current, normalizedQuery, {
           searchInChannel: true,
           minScore: 60,
         });

@@ -136,7 +136,7 @@ export default function HomeScreen() {
   }, [searchInput, isSearchActive, updateSuggestions]);
 
   useEffect(() => {
-    if (activeSearchQuery && searchInput !== activeSearchQuery) {
+    if (activeSearchQuery && searchInput.trim() !== activeSearchQuery) {
       setActiveSearchQuery("");
     }
   }, [searchInput, activeSearchQuery, setActiveSearchQuery]);
