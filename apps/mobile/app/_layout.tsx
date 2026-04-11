@@ -181,6 +181,7 @@ function RootLayoutContent() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          detachInactiveScreens: false,
           tabBarActiveTintColor: colors.accent.secondary,
           tabBarInactiveTintColor: colors.text.secondary,
         }}
@@ -478,5 +479,6 @@ function RootLayout() {
 }
 
 export default Sentry.wrap(RootLayout);
+
 
 
