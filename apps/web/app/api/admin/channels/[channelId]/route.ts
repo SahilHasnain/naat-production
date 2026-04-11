@@ -16,10 +16,6 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
   const type = body.type === "playlist" ? "playlist" : "channel";
   const playlistId = String(body.playlistId || "").trim();
 
-  if (!channelName) {
-    throw new Error("Channel name is required");
-  }
-
   if (type === "playlist" && !playlistId) {
     throw new Error("Playlist ID is required for playlist sources");
   }

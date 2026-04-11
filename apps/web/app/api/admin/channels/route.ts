@@ -43,12 +43,8 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
   const playlistId = String(body.playlistId || "").trim();
   const isOther = Boolean(body.isOther);
 
-  if (!channelId) {
+  if (type === "channel" && !channelId) {
     throw new Error("Channel ID is required");
-  }
-
-  if (!channelName) {
-    throw new Error("Channel name is required");
   }
 
   if (type === "playlist" && !playlistId) {
@@ -56,7 +52,7 @@ function normalizeChannelPayload(body: Record<string, unknown>) {
   }
 
   return {
-    channelId,
+    channelId: type === "channel" ? channelId : playlistId,
     channelName,
     type,
     isOther,

@@ -7,6 +7,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 // Support both YOUTUBE_CHANNEL_IDS (comma-separated) and legacy YOUTUBE_CHANNEL_ID
 const YOUTUBE_CHANNEL_IDS =
   process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID;
+const YOUTUBE_PLAYLIST_IDS = process.env.YOUTUBE_PLAYLIST_IDS || "";
 const APPWRITE_ENDPOINT = process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
 const APPWRITE_PROJECT_ID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
@@ -32,10 +33,16 @@ function validateEnv() {
     process.exit(1);
   }
 
-  // Check for at least one channel ID
-  if (!process.env.YOUTUBE_CHANNEL_IDS && !process.env.YOUTUBE_CHANNEL_ID) {
-    console.error("❌ Missing required environment variable:");
-    console.error("   - YOUTUBE_CHANNEL_IDS or YOUTUBE_CHANNEL_ID");
+  // Check for at least one source ID
+  if (
+    !process.env.YOUTUBE_CHANNEL_IDS &&
+    !process.env.YOUTUBE_CHANNEL_ID &&
+    !process.env.YOUTUBE_PLAYLIST_IDS
+  ) {
+    console.error("Missing required environment variable:");
+    console.error(
+      "   - YOUTUBE_CHANNEL_IDS, YOUTUBE_CHANNEL_ID, or YOUTUBE_PLAYLIST_IDS",
+    );
     process.exit(1);
   }
 }
@@ -85,6 +92,105 @@ async function getShortsVideoIds(channelId) {
   }
 
   return shortsIds;
+}
+
+async function fetchPlaylistVideos(playlistId, maxResults = 5000) {
+  const baseUrl = "https://www.googleapis.com/youtube/v3";
+
+  try {
+    const playlistResponse = await fetch(
+      `${baseUrl}/playlists?part=snippet&id=${playlistId}&key=${YOUTUBE_API_KEY}`,
+    );
+
+    if (!playlistResponse.ok) {
+      throw new Error(
+        `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`,
+      );
+    }
+
+    const playlistData = await playlistResponse.json();
+
+    if (!playlistData.items || playlistData.items.length === 0) {
+      throw new Error(`Playlist not found: ${playlistId}`);
+    }
+
+    const channelName = playlistData.items[0].snippet.title;
+    const allVideoItems = [];
+    let pageToken = null;
+    const perPage = 50;
+
+    while (allVideoItems.length < maxResults) {
+      let playlistItemsUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=${perPage}&key=${YOUTUBE_API_KEY}`;
+
+      if (pageToken) {
+        playlistItemsUrl += `&pageToken=${pageToken}`;
+      }
+
+      const itemsResponse = await fetch(playlistItemsUrl);
+
+      if (!itemsResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${itemsResponse.status} ${itemsResponse.statusText}`,
+        );
+      }
+
+      const itemsData = await itemsResponse.json();
+
+      if (!itemsData.items || itemsData.items.length === 0) {
+        break;
+      }
+
+      allVideoItems.push(...itemsData.items);
+      console.log(`   Fetched ${allVideoItems.length} playlist items so far...`);
+
+      pageToken = itemsData.nextPageToken;
+      if (!pageToken) {
+        break;
+      }
+    }
+
+    if (allVideoItems.length === 0) {
+      return { channelName, videos: [] };
+    }
+
+    const limitedVideoItems = allVideoItems.slice(0, maxResults);
+    const videoIds = limitedVideoItems
+      .map((item) => item.contentDetails?.videoId)
+      .filter(Boolean);
+
+    const videos = [];
+    const chunkSize = 50;
+
+    for (let i = 0; i < videoIds.length; i += chunkSize) {
+      const chunk = videoIds.slice(i, i + chunkSize);
+      const videosResponse = await fetch(
+        `${baseUrl}/videos?part=snippet,contentDetails,statistics&id=${chunk.join(",")}&key=${YOUTUBE_API_KEY}`,
+      );
+
+      if (!videosResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`,
+        );
+      }
+
+      const videosData = await videosResponse.json();
+      if (videosData.items && videosData.items.length > 0) {
+        videos.push(...videosData.items);
+      }
+    }
+
+    return {
+      channelName,
+      videos: videos.map((video) => ({
+        id: { videoId: video.id },
+        snippet: video.snippet,
+        contentDetails: video.contentDetails,
+        statistics: video.statistics,
+      })),
+    };
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function fetchYouTubeVideos(channelId, maxResults = 5000) {
@@ -217,12 +323,12 @@ function parseDuration(isoDuration) {
  * @param {string} title - The video title
  * @returns {boolean} - true if video should be filtered out (excluded)
  */
-function shouldFilterVideo(channelId, title) {
+function shouldFilterVideo(sourceId, title) {
   // Baghdadi Sound & Video channel ID
   const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
 
   // Check if this is the Baghdadi channel
-  if (channelId !== BAGHDADI_CHANNEL_ID) {
+  if (sourceId !== BAGHDADI_CHANNEL_ID) {
     return false; // Don't filter videos from other channels
   }
 
@@ -336,11 +442,19 @@ async function updateVideoViews(databases, documentId, newViews) {
   }
 }
 
-async function ingestChannelVideos(databases, existingVideosMap, channelId) {
-  console.log(`\n📺 Processing channel: ${channelId}`);
+async function ingestSourceVideos(
+  databases,
+  existingVideosMap,
+  sourceId,
+  sourceType = "channel",
+) {
+  console.log(`\nProcessing ${sourceType}: ${sourceId}`);
   console.log("   Fetching videos from YouTube...");
 
-  const channelData = await fetchYouTubeVideos(channelId, INGEST_MAX_RESULTS);
+  const channelData =
+    sourceType === "playlist"
+      ? await fetchPlaylistVideos(sourceId, INGEST_MAX_RESULTS)
+      : await fetchYouTubeVideos(sourceId, INGEST_MAX_RESULTS);
   const { channelName, videos } = channelData;
 
   console.log(
@@ -374,7 +488,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
     }
 
     // Check if video should be filtered out
-    if (shouldFilterVideo(channelId, title)) {
+    if (shouldFilterVideo(sourceId, title)) {
       console.log(`   🚫 Filtered: ${title} (non-Owais from Baghdadi)`);
       filteredCount++;
       continue;
@@ -398,7 +512,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
       } else {
         // New video - insert it
         try {
-          await createVideoDocument(databases, video, channelId, channelName);
+          await createVideoDocument(databases, video, sourceId, channelName);
           console.log(`   ✅ Added: ${title} (${newViews} views)`);
           newCount++;
         } catch (createError) {
@@ -421,7 +535,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
   }
 
   return {
-    channelId,
+    channelId: sourceId,
     channelName,
     newCount,
     updatedCount,
@@ -439,11 +553,18 @@ async function ingestVideos() {
     validateEnv();
     console.log("✅ Environment variables validated");
 
-    // Parse channel IDs (comma-separated)
-    const channelIds = YOUTUBE_CHANNEL_IDS.split(",")
+    // Parse source IDs (comma-separated)
+    const channelIds = (YOUTUBE_CHANNEL_IDS || "")
+      .split(",")
       .map((id) => id.trim())
       .filter((id) => id);
-    console.log(`✅ Found ${channelIds.length} channel(s) to process`);
+    const playlistIds = (YOUTUBE_PLAYLIST_IDS || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter((id) => id);
+    console.log(
+      `Found ${channelIds.length} channel(s) and ${playlistIds.length} playlist(s) to process`,
+    );
 
     const databases = initAppwrite();
     console.log("✅ Appwrite client initialized");
@@ -454,14 +575,15 @@ async function ingestVideos() {
       `✅ Found ${existingVideosMap.size} existing videos in database`,
     );
 
-    // Process each channel sequentially
+    // Process each source sequentially
     const channelResults = [];
     for (const channelId of channelIds) {
       try {
-        const result = await ingestChannelVideos(
+        const result = await ingestSourceVideos(
           databases,
           existingVideosMap,
           channelId,
+          "channel",
         );
         channelResults.push(result);
       } catch (error) {
@@ -472,6 +594,34 @@ async function ingestVideos() {
         channelResults.push({
           channelId,
           channelName: "Unknown",
+          newCount: 0,
+          updatedCount: 0,
+          unchangedCount: 0,
+          errorCount: 0,
+          filteredCount: 0,
+          totalVideos: 0,
+          error: error.message,
+        });
+      }
+    }
+
+    for (const playlistId of playlistIds) {
+      try {
+        const result = await ingestSourceVideos(
+          databases,
+          existingVideosMap,
+          playlistId,
+          "playlist",
+        );
+        channelResults.push(result);
+      } catch (error) {
+        console.error(
+          `\n❌ Error processing playlist ${playlistId}:`,
+          error.message,
+        );
+        channelResults.push({
+          channelId: playlistId,
+          channelName: "Unknown Playlist",
           newCount: 0,
           updatedCount: 0,
           unchangedCount: 0,
@@ -543,4 +693,5 @@ async function ingestVideos() {
 }
 
 ingestVideos();
+
 

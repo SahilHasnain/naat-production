@@ -201,8 +201,8 @@ export default function ChannelManagement() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!form.channelId.trim() || !form.channelName.trim()) {
-      setError("Channel ID and channel name are required.");
+    if (form.type === "channel" && !form.channelId.trim()) {
+      setError("Channel ID is required when the source type is channel.");
       return;
     }
 
@@ -216,7 +216,7 @@ export default function ChannelManagement() {
       setError(null);
 
       const payload = {
-        channelId: form.channelId.trim(),
+        channelId: form.type === "channel" ? form.channelId.trim() : "",
         channelName: form.channelName.trim(),
         type: form.type,
         playlistId: form.type === "playlist" ? form.playlistId.trim() : undefined,
@@ -390,23 +390,27 @@ export default function ChannelManagement() {
 
             <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
               <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-200">Channel ID</label>
+                <label className="mb-2 block text-sm font-medium text-neutral-200">
+                  Channel ID {form.type === "channel" ? "*" : <span className="text-neutral-500">(optional)</span>}
+                </label>
                 <input
                   value={form.channelId}
                   onChange={(event) => setForm((current) => ({ ...current, channelId: event.target.value }))}
-                  disabled={Boolean(editingChannel)}
+                  disabled={Boolean(editingChannel) || form.type === "playlist"}
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-sky-400/40"
-                  placeholder="UC... or pl_..."
+                  placeholder={form.type === "channel" ? "UC..." : "Optional for playlists"}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-200">Channel Name</label>
+                <label className="mb-2 block text-sm font-medium text-neutral-200">
+                  Channel Name <span className="text-neutral-500">(optional)</span>
+                </label>
                 <input
                   value={form.channelName}
                   onChange={(event) => setForm((current) => ({ ...current, channelName: event.target.value }))}
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-sky-400/40"
-                  placeholder="Display name"
+                  placeholder="Leave blank to fetch from source"
                 />
               </div>
 
@@ -424,13 +428,15 @@ export default function ChannelManagement() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-neutral-200">Playlist ID</label>
+                  <label className="mb-2 block text-sm font-medium text-neutral-200">
+                    Playlist ID {form.type === "playlist" ? "*" : <span className="text-neutral-500">(optional)</span>}
+                  </label>
                   <input
                     value={form.playlistId}
                     onChange={(event) => setForm((current) => ({ ...current, playlistId: event.target.value }))}
                     disabled={form.type !== "playlist"}
                     className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-sky-400/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="PL..."
+                    placeholder={form.type === "playlist" ? "PL..." : "Only used for playlist sources"}
                   />
                 </div>
               </div>
