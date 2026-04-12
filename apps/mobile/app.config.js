@@ -40,7 +40,7 @@ export default {
       associatedDomains: ["applinks:naatproduction.appwrite.network"],
     },
     android: {
-      versionCode: 11,
+      versionCode: 12,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
