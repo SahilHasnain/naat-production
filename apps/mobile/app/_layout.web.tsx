@@ -61,9 +61,6 @@ function DesktopShell() {
             <Text style={{ color: "#f6f7fb", fontSize: 26, fontWeight: "700" }}>
               Naat
             </Text>
-            <Text style={{ color: "rgba(255,255,255,0.58)", marginTop: 4 }}>
-              Listen on desktop
-            </Text>
           </View>
 
           <View style={{ gap: 10 }}>
@@ -104,30 +101,6 @@ function DesktopShell() {
             })}
           </View>
 
-          <View
-            style={{
-              marginTop: 24,
-              borderRadius: 20,
-              padding: 18,
-              backgroundColor: "rgba(255,255,255,0.04)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.06)",
-            }}
-          >
-            <Text style={{ color: "#eef4ff", fontSize: 15, fontWeight: "700" }}>
-              Desktop mode
-            </Text>
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.62)",
-                fontSize: 13,
-                lineHeight: 20,
-                marginTop: 8,
-              }}
-            >
-              Wider browsing, fixed navigation, and a dedicated player panel.
-            </Text>
-          </View>
         </View>
 
         <View style={{ flex: 1 }}>

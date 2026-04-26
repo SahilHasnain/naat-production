@@ -48,7 +48,6 @@ export default function HomeWebScreen() {
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <View>
           <Text style={{ color: "#f9fbff", fontSize: 32, fontWeight: "800" }}>Browse naats</Text>
-          <Text style={{ color: "rgba(255,255,255,0.56)", marginTop: 6 }}>A cleaner desktop view for recent and popular picks.</Text>
         </View>
         <View
           style={{

@@ -17,7 +17,7 @@ export default function DownloadsWebScreen() {
     >
       <Text style={{ color: "#f8fbff", fontSize: 28, fontWeight: "800" }}>Downloads stay on mobile</Text>
       <Text style={{ color: "rgba(255,255,255,0.56)", marginTop: 10, textAlign: "center", maxWidth: 520 }}>
-        Desktop web uses streaming playback. Offline downloaded files remain part of the mobile app experience.
+        Downloads are available in the app.
       </Text>
     </View>
   );
