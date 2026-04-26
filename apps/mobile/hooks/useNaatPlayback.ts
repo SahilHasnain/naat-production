@@ -7,7 +7,7 @@ import { showErrorToast } from "@/utils/toast";
 import { hasAudio } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 
 export function useNaatPlayback(displayData: Naat[]) {
   const router = useRouter();
@@ -104,7 +104,10 @@ export function useNaatPlayback(displayData: Naat[]) {
       try {
         let audioUrl: string;
         let isLocalFile = false;
-        const downloaded = await audioDownloadService.isDownloaded(audioId);
+        const downloaded =
+          Platform.OS === "web"
+            ? false
+            : await audioDownloadService.isDownloaded(audioId);
 
         if (downloaded) {
           audioUrl = audioDownloadService.getLocalPath(audioId);

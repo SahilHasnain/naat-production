@@ -16,6 +16,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -170,7 +171,10 @@ export default function VideoScreen() {
       let audioUrl: string;
       let isLocalFile = false;
 
-      const downloaded = await audioDownloadService.isDownloaded(propAudioId);
+      const downloaded =
+        Platform.OS === "web"
+          ? false
+          : await audioDownloadService.isDownloaded(propAudioId);
 
       if (downloaded) {
         // Use local file
