@@ -78,13 +78,20 @@ jobs:
           echo "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
 
       - name: Configure optional Sentry
-        if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT != '' }}
         run: |
-          cat > apps/mobile/android/sentry.properties <<EOF
+          if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ] && [ -n "${{ vars.SENTRY_ORG }}" ] && [ -n "${{ vars.SENTRY_PROJECT }}" ]; then
+            cat > apps/mobile/android/sentry.properties <<EOF
           defaults.url=https://sentry.io/
           defaults.org=${{ vars.SENTRY_ORG }}
           defaults.project=${{ vars.SENTRY_PROJECT }}
+          auth.token=${{ secrets.SENTRY_AUTH_TOKEN }}
           EOF
+            echo "Sentry configured"
+          else
+            echo "Skipping Sentry configuration (missing SENTRY_AUTH_TOKEN, SENTRY_ORG, or SENTRY_PROJECT)"
+            # Create empty sentry.properties to prevent build failure
+            touch apps/mobile/android/sentry.properties
+          fi
 
       - name: Build Android artifact
         env:
