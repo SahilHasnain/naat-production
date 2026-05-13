@@ -1,4 +1,4 @@
-name: Android Self Hosted
+name: Android CI
 
 on:
   workflow_dispatch:
@@ -15,27 +15,14 @@ on:
 
 jobs:
   build-android:
-    runs-on: [self-hosted, linux, x64, android-do]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     env:
-      ANDROID_SDK_ROOT: /opt/android-sdk
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-      EXPO_USE_METRO_WORKSPACE_ROOT: "1"
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
       APP_VARIANT: ${{ inputs.app_variant || 'production' }}
-      EXPO_PUBLIC_APPWRITE_ENDPOINT: ${{ vars.EXPO_PUBLIC_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1' }}
-      EXPO_PUBLIC_APPWRITE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_PROJECT_ID || '695bb97700213f4ef5dd' }}
-      EXPO_PUBLIC_APPWRITE_DATABASE_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_DATABASE_ID || '695bba86001b50478ed4' }}
-      EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || '695bc8e70038db72df5b' }}
-      EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID || 'channels' }}
-      EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID || 'live_radio' }}
-      EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT: ${{ vars.EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT || 'https://698b307d001f4e3bb03e.sgp.appwrite.run' }}
-      EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL: ${{ vars.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL || 'https://69a8e9000021d2eaafd9.sgp.appwrite.run' }}
-      EXPO_PUBLIC_USE_SEMANTIC_SEARCH: ${{ vars.EXPO_PUBLIC_USE_SEMANTIC_SEARCH || 'false' }}
-      EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS: ${{ vars.EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS || 'true' }}
-      EXPO_PUBLIC_SENTRY_DSN: ${{ vars.EXPO_PUBLIC_SENTRY_DSN || 'https://26f7852901dbe4c65a101e2300db1d8f@o4509954219966464.ingest.de.sentry.io/4510675297501264' }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,44 +39,57 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: false
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      - name: Write Expo env file
+      - name: Cache NDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/mobile/android/app/.cxx
+            apps/mobile/android/.gradle
+          key: ${{ runner.os }}-ndk-${{ hashFiles('apps/mobile/android/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-ndk-
+
+      - name: Install dependencies
         run: |
-          cat > apps/mobile/.env.local <<EOF
-          EXPO_USE_METRO_WORKSPACE_ROOT=${EXPO_USE_METRO_WORKSPACE_ROOT}
-          APP_VARIANT=${APP_VARIANT}
-          EXPO_PUBLIC_APPWRITE_ENDPOINT=${EXPO_PUBLIC_APPWRITE_ENDPOINT}
-          EXPO_PUBLIC_APPWRITE_PROJECT_ID=${EXPO_PUBLIC_APPWRITE_PROJECT_ID}
-          EXPO_PUBLIC_APPWRITE_DATABASE_ID=${EXPO_PUBLIC_APPWRITE_DATABASE_ID}
-          EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID}
-          EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID}
-          EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID}
-          EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT=${EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT}
-          EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL=${EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL}
-          EXPO_PUBLIC_USE_SEMANTIC_SEARCH=${EXPO_PUBLIC_USE_SEMANTIC_SEARCH}
-          EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS=${EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS}
-          EXPO_PUBLIC_SENTRY_DSN=${EXPO_PUBLIC_SENTRY_DSN}
-          SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
-          EOF
+          npm ci
 
       - name: Configure Android SDK path
         run: |
           printf "sdk.dir=%s\n" "$ANDROID_SDK_ROOT" > apps/mobile/android/local.properties
 
-      - name: Configure Sentry
+      - name: Decode keystore
         run: |
-          cat > apps/mobile/android/sentry.properties <<'EOF'
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+
+      - name: Decode Play Store JSON
+        if: ${{ env.APP_VARIANT == 'production' }}
+        run: |
+          echo "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
+
+      - name: Configure optional Sentry
+        if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT != '' }}
+        run: |
+          cat > apps/mobile/android/sentry.properties <<EOF
           defaults.url=https://sentry.io/
-          defaults.org=sahil-hasnain
-          defaults.project=ubaid-raza-naats
+          defaults.org=${{ vars.SENTRY_ORG }}
+          defaults.project=${{ vars.SENTRY_PROJECT }}
           EOF
 
       - name: Build Android artifact
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/naat-collection/release.keystore
+          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -109,16 +109,15 @@ jobs:
           path: |
             apps/mobile/android/app/build/outputs/**/*.aab
             apps/mobile/android/app/build/outputs/**/*.apk
-
       - name: Fastlane deploy
         if: ${{ env.APP_VARIANT == 'production' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SUPPLY_JSON_KEY: /home/Sahilhasnain/android-secrets/play-store-key.json
-          ANDROID_APPLICATION_ID: com.owaisrazaqadri
-          PLAY_TRACK: alpha
+          SUPPLY_JSON_KEY: /tmp/play-store-key.json
+          ANDROID_APPLICATION_ID: ${{ vars.ANDROID_APPLICATION_ID || 'com.naatproduction' }}
+          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'alpha' }}
           SKIP_ANDROID_BUILD: "true"
-          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/naat-collection/release.keystore
+          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -127,9 +126,3 @@ jobs:
           bundle install
           fastlane android deploy
 
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          cd apps/mobile/android
-          ./gradlew clean
-          rm -rf ~/.gradle/caches/build-cache-*

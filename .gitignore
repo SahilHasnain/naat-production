@@ -55,3 +55,6 @@ ref/secret.md
 inspiration/
 naat-collection_key.json
 sentry.properties
+
+# secrets folder
+secrets/
