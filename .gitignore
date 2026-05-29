@@ -33,7 +33,6 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env*
 !.env.example
 
 # typescript
@@ -58,3 +57,4 @@ sentry.properties
 
 # secrets folder
 secrets/
+config.bat
