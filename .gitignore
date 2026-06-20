@@ -58,3 +58,4 @@ sentry.properties
 # secrets folder
 secrets/
 config.bat
+.env
