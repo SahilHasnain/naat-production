@@ -9,6 +9,19 @@ import {
     validateAppwriteConfig as validateConfig,
 } from "@naat-collection/shared";
 
+/**
+ * Static JSON fallback URLs (jsDelivr CDN)
+ * These are used when Appwrite rate limits or payment limits are exceeded.
+ * Run `node scripts/export-naats-to-json.js` to generate the exports,
+ * commit them to the repo, and update the URLs below.
+ */
+export const STATIC_FALLBACK_URLS = {
+  NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL ||
+    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/naats-export.json',
+  CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL ||
+    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/channels-export.json',
+};
+
 // Hardcoded configuration values
 const env = {
   APPWRITE_ENDPOINT: "https://sgp.cloud.appwrite.io/v1",

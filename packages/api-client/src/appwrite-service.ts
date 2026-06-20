@@ -18,6 +18,10 @@ import { Client, Databases, Query } from "appwrite";
 export interface AppwriteServiceOptions {
   config: AppwriteConfig;
   onError?: (error: Error, context?: Record<string, any>) => void;
+  staticFallbackUrls?: {
+    naats: string;
+    channels: string;
+  };
 }
 
 /**
@@ -29,12 +33,82 @@ export class AppwriteService implements IAppwriteService {
   private config: AppwriteConfig;
   private isInitialized: boolean = false;
   private onError?: (error: Error, context?: Record<string, any>) => void;
+  private staticFallbackUrls?: { naats: string; channels: string };
+  private staticNaatsCache: Naat[] | null = null;
+  private staticChannelsCache: Channel[] | null = null;
+  private isUsingFallback: boolean = false;
 
   constructor(options: AppwriteServiceOptions) {
     this.config = options.config;
     this.onError = options.onError;
+    this.staticFallbackUrls = options.staticFallbackUrls;
     this.client = new Client();
     this.database = new Databases(this.client);
+  }
+
+  /**
+   * Load naats from static JSON fallback
+   */
+  private async loadStaticNaats(): Promise<Naat[]> {
+    if (this.staticNaatsCache) {
+      return this.staticNaatsCache;
+    }
+
+    if (!this.staticFallbackUrls?.naats) {
+      throw new Error('Static fallback URL not configured');
+    }
+
+    try {
+      const response = await fetch(this.staticFallbackUrls.naats);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch static naats: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.staticNaatsCache = data.data || data;
+      this.isUsingFallback = true;
+
+      return this.staticNaatsCache;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Load channels from static JSON fallback
+   */
+  private async loadStaticChannels(): Promise<any[]> {
+    if (this.staticChannelsCache) {
+      return this.staticChannelsCache;
+    }
+
+    if (!this.staticFallbackUrls?.channels) {
+      throw new Error('Static fallback URL not configured');
+    }
+
+    try {
+      const response = await fetch(this.staticFallbackUrls.channels);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch static channels: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.staticChannelsCache = data.data || data;
+      this.isUsingFallback = true;
+
+      return this.staticChannelsCache;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Check if currently using fallback mode
+   */
+  public isInFallbackMode(): boolean {
+    return this.isUsingFallback;
   }
 
   /**
@@ -102,7 +176,41 @@ export class AppwriteService implements IAppwriteService {
       );
 
       return response.documents as unknown as Naat[];
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 429 || error.code === 402 || error.code === 503 || error.type === 'general_rate_limit_exceeded' || error.type === 'limit_databases_reads_exceeded') {
+        try {
+          const allNaats = await this.loadStaticNaats();
+
+          let filtered = allNaats.filter(naat => {
+            if (channelId && naat.channelId !== channelId) return false;
+            if (audioOnly && !naat.audioId) return false;
+            return true;
+          });
+
+          switch (sortBy) {
+            case "popular":
+              filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+              break;
+            case "oldest":
+              filtered.sort((a, b) =>
+                new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+              );
+              break;
+            case "latest":
+            default:
+              filtered.sort((a, b) =>
+                new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+              );
+              break;
+          }
+
+          return filtered.slice(offset, offset + limit);
+
+        } catch (fallbackError) {
+          throw error;
+        }
+      }
+
       this.onError?.(error as Error, {
         context: "getNaats",
         limit,
@@ -199,7 +307,30 @@ export class AppwriteService implements IAppwriteService {
       );
 
       return response.documents as unknown as Naat[];
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 429 || error.code === 402 || error.code === 503 || error.type === 'general_rate_limit_exceeded' || error.type === 'limit_databases_reads_exceeded') {
+        try {
+          const allNaats = await this.loadStaticNaats();
+
+          const searchLower = query.toLowerCase();
+          let results = allNaats.filter(naat => {
+            if (!naat.title.toLowerCase().includes(searchLower)) return false;
+            if (channelId && naat.channelId !== channelId) return false;
+            if (audioOnly && !naat.audioId) return false;
+            return true;
+          });
+
+          results.sort((a, b) =>
+            new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+          );
+
+          return results;
+
+        } catch (fallbackError) {
+          throw error;
+        }
+      }
+
       this.onError?.(error as Error, {
         context: "searchNaats",
         query,
@@ -235,7 +366,25 @@ export class AppwriteService implements IAppwriteService {
       });
 
       return channels;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 429 || error.code === 402 || error.code === 503 || error.type === 'general_rate_limit_exceeded' || error.type === 'limit_databases_reads_exceeded') {
+        try {
+          const staticChannels = await this.loadStaticChannels();
+
+          return staticChannels.map((doc: any) => ({
+            id: doc.channelId,
+            name: doc.channelName,
+            isOfficial: doc.isOfficial ?? true,
+            isOther: doc.isOther ?? false,
+            type: doc.type ?? "channel",
+            playlistId: doc.playlistId,
+          }));
+
+        } catch (fallbackError) {
+          throw error;
+        }
+      }
+
       this.onError?.(error as Error, { context: "getChannels" });
       throw error;
     }
