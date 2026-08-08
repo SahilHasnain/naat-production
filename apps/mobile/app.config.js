@@ -18,7 +18,7 @@ const getAppName = () => {
   if (IS_PREVIEW) {
     return "Naat Production (Preview)";
   }
-  return "Naat Production";
+  return "Naatly";
 };
 
 export default {
@@ -40,7 +40,7 @@ export default {
       associatedDomains: ["applinks:naatproduction.appwrite.network"],
     },
     android: {
-      versionCode: 16,
+      versionCode: 17,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
