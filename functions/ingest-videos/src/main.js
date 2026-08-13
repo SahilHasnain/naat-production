@@ -467,18 +467,40 @@ async function updateVideoViews(
 }
 
 /**
- * Check if a video should be filtered out based on duration
- * @param {number} duration - The video duration in seconds
+ * Check if a video should be filtered out based on channel and title rules
+ * @param {boolean} isOfficial - Whether the channel is official
+ * @param {string} title - The video title
  * @returns {boolean} - true if video should be filtered out (excluded)
  */
-function shouldFilterVideo(duration) {
-  // Filter out videos less than 60 seconds (shorts/clips)
-  if (duration < 60) {
-    return true;
+function shouldFilterVideo(isOfficial, title) {
+  // If channel is official, don't filter any videos
+  if (isOfficial) {
+    return false;
   }
 
-  // Accept all other videos regardless of length
-  return false;
+  // For non-official channels, only include videos with "Owais Qadri" or "Owais Raza Qadri"
+  const titleLower = title.toLowerCase();
+
+  // Only 'O' starting variations allowed (no 'A' or 'U' variations)
+  // Spelling errors allowed but first letter must be 'O'
+  const owaisVariations = ["owais", "owias", "owes", "owaiz", "ovais", "oveis"];
+
+  // Check if title contains "Owais" (O-starting variations only)
+  const hasOwais = owaisVariations.some((owais) => titleLower.includes(owais));
+
+  // Check if title contains "Qadri" (required - with common spelling variations)
+  const qadriVariations = ["qadri", "qadiri", "qaadri", "qaadiri"];
+  const hasQadri = qadriVariations.some((qadri) => titleLower.includes(qadri));
+
+  // Must have Owais (O-starting) + Qadri
+  // This filters out:
+  // - "Awais", "Uwais" variations (wrong first letter)
+  // - "Owais Raza" without "Qadri" (other artists like Owais Raza Attari)
+  // - Other artists like "Bilal Owaisi", "Bilal Raza Owaisi"
+  const isOwaisQadriVideo = hasOwais && hasQadri;
+
+  // Filter out (return true) if it does NOT match the pattern
+  return !isOwaisQadriVideo;
 }
 
 /**
@@ -560,9 +582,34 @@ async function processSource(
 
     for (const video of videos) {
       try {
-        // Filter out videos less than 60 seconds (shorts/clips)
-        if (shouldFilterVideo(video.duration)) {
-          log(`Filtered: ${video.title} (duration ${video.duration}s < 60s, likely short/clip)`);
+        // Filter out videos less than 1 minute (60 seconds) - backup filter for shorts
+        if (video.duration < 60) {
+          log(`Filtered: ${video.title} (duration ${video.duration}s < 60s, likely short)`);
+          results.filtered++;
+          continue;
+        }
+
+        // Filter out videos greater than 1 hour (3600 seconds) for all channels
+        if (video.duration > 3600) {
+          log(`Filtered: ${video.title} (duration ${video.duration}s > 3600s)`);
+          results.filtered++;
+          continue;
+        }
+
+        // Filter out videos longer than 20 minutes (1200 seconds) for isOther channels
+        if (isOther && video.duration > 1200) {
+          log(
+            `Filtered: ${video.title} (duration ${video.duration}s > 1200s for isOther channel)`,
+          );
+          results.filtered++;
+          continue;
+        }
+
+        // Check if video should be filtered out
+        if (shouldFilterVideo(isOfficial, video.title)) {
+          log(
+            `Filtered: ${video.title} (non-Owais from non-official ${sourceType})`,
+          );
           results.filtered++;
           continue;
         }

@@ -32,7 +32,7 @@ export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 export function useNaats(
   channelId: string | null = null,
   filter: SortOption = "forYou",
-  audioOnly: boolean = false,
+  pureOnly: boolean = false,
 ): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -54,35 +54,35 @@ export function useNaats(
   // Track current filter and channel to detect changes
   const currentFilterRef = useRef<SortOption>(filter);
   const currentChannelRef = useRef<string | null>(channelId);
-  const currentAudioOnlyRef = useRef<boolean>(audioOnly);
+  const currentPureOnlyRef = useRef<boolean>(pureOnly);
 
   // Generate cache key from channelId and filter
   const getCacheKey = useCallback(
     (channel: string | null, sortFilter: SortOption): string => {
-      return `${channel || "all"}_${sortFilter}${audioOnly ? "_audio" : ""}`;
+      return `${channel || "all"}_${sortFilter}${pureOnly ? "_pure" : ""}`;
     },
-    [audioOnly],
+    [pureOnly],
   );
 
   const cacheKey = getCacheKey(channelId, filter);
 
-  // Reset state when filter or channelId or audioOnly changes
+  // Reset state when filter or channelId or pureOnly changes
   useEffect(() => {
     if (
       currentFilterRef.current !== filter ||
       currentChannelRef.current !== channelId ||
-      currentAudioOnlyRef.current !== audioOnly
+      currentPureOnlyRef.current !== pureOnly
     ) {
       currentFilterRef.current = filter;
       currentChannelRef.current = channelId;
-      currentAudioOnlyRef.current = audioOnly;
+      currentPureOnlyRef.current = pureOnly;
       offsetRef.current = 0;
       setNaats([]);
       setHasMore(true);
       setError(null);
       isLoadingRef.current = false;
     }
-  }, [filter, channelId, audioOnly]);
+  }, [filter, channelId, pureOnly]);
 
   /**
    * Load more naats for infinite scroll
@@ -156,7 +156,7 @@ export function useNaats(
       const initialBatchSize = 1000;
 
       appwriteService
-        .getNaats(initialBatchSize, 0, "latest", channelId, audioOnly)
+        .getNaats(initialBatchSize, 0, "latest", channelId, pureOnly)
         .then(async (initialNaats) => {
           console.log(
             `[ForYou] Initial fetch: ${initialNaats.length} videos, applying algorithm...`,
@@ -211,7 +211,7 @@ export function useNaats(
                     currentOffset,
                     "latest",
                     channelId,
-                    audioOnly,
+                    pureOnly,
                   );
 
                   if (batch.length > 0) {
@@ -272,7 +272,7 @@ export function useNaats(
     } else {
       // Standard fetch for other filters
       appwriteService
-        .getNaats(PAGE_SIZE, offsetRef.current, filter, channelId, audioOnly)
+        .getNaats(PAGE_SIZE, offsetRef.current, filter, channelId, pureOnly)
         .then((newNaats) => {
           // Cache the results for this channel + filter combination
           filterCache.set(offsetRef.current, newNaats);
@@ -304,7 +304,7 @@ export function useNaats(
           isLoadingRef.current = false;
         });
     }
-  }, [hasMore, filter, channelId, cacheKey, audioOnly]);
+  }, [hasMore, filter, channelId, cacheKey, pureOnly]);
 
   /**
    * Refresh the naats list (pull-to-refresh)
@@ -341,7 +341,7 @@ export function useNaats(
           0,
           "latest",
           channelId,
-          audioOnly,
+          pureOnly,
         );
 
         console.log(
@@ -394,7 +394,7 @@ export function useNaats(
                   currentOffset,
                   "latest",
                   channelId,
-                  audioOnly,
+                  pureOnly,
                 );
 
                 if (batch.length > 0) {
@@ -439,7 +439,7 @@ export function useNaats(
           0,
           filter,
           channelId,
-          audioOnly,
+          pureOnly,
         );
 
         // Get or create cache for current channel + filter combination

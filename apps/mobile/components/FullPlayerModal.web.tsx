@@ -111,7 +111,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ onSwitchToVideo }) =>
                 >
                   {currentAudio.title}
                 </Text>
-
+  
               </View>
               <Pressable
                 onPress={() => {

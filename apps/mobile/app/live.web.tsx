@@ -1,4 +1,4 @@
-import { colors } from "@/constants/theme";
+import { colors, shadows } from "@/constants/theme";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";

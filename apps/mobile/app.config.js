@@ -1,34 +1,36 @@
+const brand = require("./brand.config.js");
+
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
-    return "com.naatproduction.dev";
+    return brand.app.packageIdDev;
   }
   if (IS_PREVIEW) {
-    return "com.naatproduction.preview";
+    return brand.app.packageIdPreview;
   }
-  return "com.naatproduction";
+  return brand.app.packageId;
 };
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Naat Production (Dev)";
+    return `${brand.app.name} (Dev)`;
   }
   if (IS_PREVIEW) {
-    return "Naat Production (Preview)";
+    return `${brand.app.name} (Preview)`;
   }
-  return "Naatly";
+  return brand.app.name;
 };
 
 export default {
   expo: {
     name: getAppName(),
-    slug: "naat-production-app",
+    slug: brand.app.slug,
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/android-icon-foreground.png",
-    scheme: "naatproduction",
+    scheme: brand.app.scheme,
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -37,10 +39,10 @@ export default {
       infoPlist: {
         UIBackgroundModes: ["audio"],
       },
-      associatedDomains: ["applinks:naatproduction.appwrite.network"],
+      associatedDomains: [`applinks:${brand.app.applinksHost}`],
     },
     android: {
-      versionCode: 17,
+      versionCode: brand.app.versionCode,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
@@ -48,6 +50,10 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
+      notification: {
+        icon: "./assets/images/status_bar_icon.png",
+        color: "#000000",
+      },
       permissions: [
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
@@ -61,7 +67,7 @@ export default {
           autoVerify: true,
           data: [
             {
-              scheme: "naatproduction",
+              scheme: brand.app.scheme,
               host: "*",
             },
           ],
@@ -73,7 +79,7 @@ export default {
           data: [
             {
               scheme: "https",
-              host: "naatproduction.appwrite.network",
+              host: brand.app.applinksHost,
               pathPrefix: "/naat",
             },
           ],
@@ -96,13 +102,17 @@ export default {
           backgroundColor: "#000000",
         }
       ],
-      [
-        "@sentry/react-native",
-        {
-          organization: "sahil-hasnain",
-          project: "naat-production",
-        },
-      ],
+      ...(brand.sentry.enabled
+        ? [
+            [
+              "@sentry/react-native",
+              {
+                organization: brand.sentry.org,
+                project: brand.sentry.project,
+              },
+            ],
+          ]
+        : []),
       [
         "expo-speech-recognition",
         {
@@ -123,7 +133,7 @@ export default {
     extra: {
       router: {},
       eas: {
-       
+        projectId: brand.eas.projectId,
       },
     },
   },

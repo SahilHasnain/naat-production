@@ -35,7 +35,13 @@ const MiniPlayer: React.FC<MiniPlayerProps> = () => {
       }}
     >
       <View style={{ height: 3, backgroundColor: "rgba(255,255,255,0.08)" }}>
-        <View style={{ width: `${progress}%`, height: "100%", backgroundColor: colors.accent.primary }} />
+        <View
+          style={{
+            width: `${progress}%`,
+            height: "100%",
+            backgroundColor: colors.accent.primary,
+          }}
+        />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
         <Link href="/player" asChild>
@@ -50,7 +56,11 @@ const MiniPlayer: React.FC<MiniPlayerProps> = () => {
                 marginRight: 14,
               }}
             >
-              <Image source={{ uri: currentAudio.thumbnailUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+              <Image
+                source={{ uri: currentAudio.thumbnailUrl }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text numberOfLines={1} style={{ color: "#f7f9fc", fontSize: 16, fontWeight: "700" }}>

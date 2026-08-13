@@ -4,7 +4,7 @@ describe("Custom Search Algorithm", () => {
   const mockNaats = [
     {
       title: "Hai Kalam e Ilah Mein Shamsudduha",
-      channelName: "Naat Production",
+      channelName: "Owais Raza Qadri",
     },
     {
       title: "Kalam e Pak",
@@ -12,19 +12,19 @@ describe("Custom Search Algorithm", () => {
     },
     {
       title: "Shamsudduha Ka Kalam",
-      channelName: "Naat Production",
+      channelName: "Owais Raza Qadri",
     },
     {
       title: "Hai Ilah Mein Kalam Shamsudduha",
-      channelName: "Naat Production",
+      channelName: "Owais Raza Qadri",
     },
     {
       title: "Beautiful Naat",
-      channelName: "Naat Production",
+      channelName: "Owais Raza Qadri",
     },
     {
       title: "Munawwar Meri Aankhon Ko Mere Shamsudduha Kar De",
-      channelName: "Naat Production",
+      channelName: "Owais Raza Qadri",
     },
     {
       title: "Munavar Meri Ankhon Ko Mere Shams Ud Duha Kar Day",
@@ -94,7 +94,7 @@ describe("Custom Search Algorithm", () => {
   });
 
   test("channel name search with lower weight", () => {
-    const results = searchItems(mockNaats, "Naat Production", {
+    const results = searchItems(mockNaats, "Owais Raza Qadri", {
       searchInChannel: true,
     });
 

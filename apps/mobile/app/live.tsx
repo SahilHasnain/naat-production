@@ -222,6 +222,8 @@ export default function LiveScreen() {
                 />
               )}
             </TouchableOpacity>
+
+
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -349,12 +351,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.primary,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 16,
     ...shadows.accent,
   },
   playButtonActive: {
     backgroundColor: colors.accent.error,
     shadowColor: colors.accent.error,
   },
+
 
   // Error state
   errorIconContainer: {

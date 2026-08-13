@@ -9,7 +9,7 @@ This phase adds two new boolean attributes to the channels collection and update
 ### `isOfficial` (Boolean, Required, Default: true)
 
 - **true**: Official channel - ingest ALL videos from this channel
-- **false**: Non-official channel - ingest ONLY videos with "Naat Production" in the title
+- **false**: Non-official channel - ingest ONLY videos with "Owais Raza Qadri" in the title
 
 ### `isOther` (Boolean, Required, Default: false)
 
@@ -160,7 +160,7 @@ Check your channels in Appwrite console:
 
 3. **Verify results:**
    - Official channels: All videos should be ingested
-   - Non-official channels: Only Naat Production videos should be ingested
+   - Non-official channels: Only Owais Raza Qadri videos should be ingested
 
 ### Example Log Output
 
@@ -171,8 +171,8 @@ Fetched 2 channels from database
 Found 2 channel(s) to process
 Processing channel: UC-pKQ46ZSMkveYV7nKijWmQ (Non-official)
 Found 500 videos for channel: Baghdadi Sound & Video
-Filtered: Some Other Naat (non-Naat Production from non-official channel)
-Added new video: Naat Production - Beautiful Naat
+Filtered: Some Other Naat (non-Owais from non-official channel)
+Added new video: Owais Raza Qadri - Beautiful Naat
 Processing channel: UCyvdo5fpPSnidSsM-c7F9wg (Official)
 Found 300 videos for channel: Official Channel
 Added new video: Any Naat Title

@@ -29,7 +29,7 @@ import {
   SectionList,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import {
   Gesture,
@@ -250,7 +250,7 @@ export default function HistoryScreen() {
                   router.push({
                     pathname: "/video",
                     params: {
-                      videoUrl: naat.videoUrl,
+                      videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
@@ -367,7 +367,7 @@ export default function HistoryScreen() {
                   router.push({
                     pathname: "/video",
                     params: {
-                      videoUrl: naat.videoUrl,
+                      videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
@@ -407,7 +407,7 @@ export default function HistoryScreen() {
           router.push({
             pathname: "/video",
             params: {
-              videoUrl: naat.videoUrl,
+              videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
               title: naat.title,
               channelName: naat.channelName,
               thumbnailUrl: naat.thumbnailUrl,
@@ -481,7 +481,7 @@ export default function HistoryScreen() {
       router.push({
         pathname: "/video",
         params: {
-          videoUrl: selectedNaat.videoUrl,
+          videoUrl: selectedNaat.videoUrl || (selectedNaat.youtubeId ? `https://www.youtube.com/watch?v=${selectedNaat.youtubeId}` : ""),
           title: selectedNaat.title,
           channelName: selectedNaat.channelName,
           thumbnailUrl: selectedNaat.thumbnailUrl,

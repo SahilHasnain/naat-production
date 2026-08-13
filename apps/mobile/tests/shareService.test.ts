@@ -9,6 +9,7 @@ import type { Naat } from "@naat-collection/shared";
 import { Share } from "react-native";
 import { shareService } from "../services/shareService";
 
+// Mock React Native Share
 jest.mock("react-native", () => ({
   Share: {
     share: jest.fn(),
@@ -20,11 +21,13 @@ jest.mock("react-native", () => ({
   },
 }));
 
+// Mock Sentry
 jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   addBreadcrumb: jest.fn(),
 }));
 
+// Mock toast utilities
 jest.mock("../utils/toast", () => ({
   showSuccessToast: jest.fn(),
   showErrorToast: jest.fn(),
@@ -68,16 +71,31 @@ describe("shareService", () => {
       expect(result).toBe(true);
     });
 
-    it("should include the generated share URL", async () => {
+    it("should include channel name when requested", async () => {
       (Share.share as jest.Mock).mockResolvedValue({
         action: Share.sharedAction,
       });
 
-      await shareService.shareNaat(mockNaat);
+      await shareService.shareNaat(mockNaat, { includeChannelName: true });
 
       expect(Share.share).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining("naatproduction.appwrite.network/naat/test-id"),
+          message: expect.stringContaining("Test Channel"),
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it("should include YouTube URL when requested", async () => {
+      (Share.share as jest.Mock).mockResolvedValue({
+        action: Share.sharedAction,
+      });
+
+      await shareService.shareNaat(mockNaat, { includeUrl: true });
+
+      expect(Share.share).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining("youtu.be/test-youtube-id"),
         }),
         expect.any(Object)
       );
@@ -119,7 +137,7 @@ describe("shareService", () => {
   });
 
   describe("shareCurrentAudio", () => {
-    it("should share current audio", async () => {
+    it("should share current audio with title and channel", async () => {
       (Share.share as jest.Mock).mockResolvedValue({
         action: Share.sharedAction,
       });
@@ -132,7 +150,7 @@ describe("shareService", () => {
 
       expect(Share.share).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining("Current Naat"),
+          message: expect.stringContaining("Currently listening to: Current Naat"),
           title: "Current Naat",
         }),
         expect.any(Object)

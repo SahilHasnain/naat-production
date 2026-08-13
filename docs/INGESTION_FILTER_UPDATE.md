@@ -10,8 +10,8 @@ The video ingestion script (`scripts/data-management/ingest-videos.js`) has been
 
 For videos from **Baghdadi Sound and Media** channel:
 
-- ✅ **INCLUDE** videos with "Naat Production" in the title
-- 🚫 **EXCLUDE** all other videos (non-Naat Production naats)
+- ✅ **INCLUDE** videos with "Owais Raza", "Owais Qadri", or "Owais Raza Qadri" in the title
+- 🚫 **EXCLUDE** all other videos (non-Owais naats)
 
 ### Other Channels:
 
@@ -33,10 +33,10 @@ When running `npm run ingest:videos`, you'll now see:
 📺 Processing channel: UCxxxxx
    ✅ Found 150 videos for channel: Baghdadi Sound and Media
 
-   🚫 Filtered: Some Other Naat Title (non-Naat Production from Baghdadi)
-   ✅ Added: Naat Production - Beautiful Naat (1234 views)
-   🚫 Filtered: Another Non-Naat Production Naat (non-Naat Production from Baghdadi)
-   🔄 Updated: Naat Production Latest Naat (5000 → 5100 views)
+   🚫 Filtered: Some Other Naat Title (non-Owais from Baghdadi)
+   ✅ Added: Owais Raza Qadri - Beautiful Naat (1234 views)
+   🚫 Filtered: Another Non-Owais Naat (non-Owais from Baghdadi)
+   🔄 Updated: Owais Qadri Latest Naat (5000 → 5100 views)
 
 📊 Per-Channel Statistics:
 ════════════════════════════════════════════════════════════

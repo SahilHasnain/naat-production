@@ -31,7 +31,11 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = () => {
         <Link href="/live" asChild>
           <Pressable style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <View style={{ width: 92, aspectRatio: 16 / 9, borderRadius: 14, overflow: "hidden", marginRight: 14 }}>
-              <Image source={require("@/assets/images/gumbad.png")} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+              <Image
+                source={require("@/assets/images/gumbad.png")}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
             </View>
             <View>
               <Text style={{ color: "#f4fffb", fontSize: 16, fontWeight: "700" }}>{currentNaat.title}</Text>

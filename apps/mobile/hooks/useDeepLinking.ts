@@ -18,7 +18,7 @@ function extractSharedNaatParams(url: string): {
   const urlObj = new URL(url);
   const youtubeId = urlObj.searchParams.get("youtubeId");
 
-  if (urlObj.protocol === "naatproduction:") {
+  if (urlObj.protocol === "ubaidraza:") {
     const customSchemeSegments = [urlObj.host, ...urlObj.pathname.split("/")].filter(
       Boolean,
     );

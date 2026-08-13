@@ -45,7 +45,7 @@ export default function PrivacyPolicy() {
                             color: "#374151",
                             lineHeight: "1.75"
                         }}>
-                            Welcome to Naat Radio. We respect your privacy and are committed to
+                            Welcome to Naat Collection. We respect your privacy and are committed to
                             protecting your personal data. This privacy policy explains how we
                             handle your information when you use our mobile application.
                         </p>
@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
-                            Naat Radio is designed with privacy in mind. We collect minimal
+                            Naat Collection is designed with privacy in mind. We collect minimal
                             information:
                         </p>
                         <ul style={{
@@ -288,7 +288,7 @@ export default function PrivacyPolicy() {
                         fontSize: "14px",
                         color: "#6B7280"
                     }}>
-                        © {new Date().getFullYear()} Naat Radio. All rights reserved.
+                        © {new Date().getFullYear()} Naat Collection. All rights reserved.
                     </p>
                 </div>
             </div>

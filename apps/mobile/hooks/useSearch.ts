@@ -17,7 +17,7 @@ import type { Naat, UseSearchReturn } from "../types";
  * @param channelId - Optional channel ID to filter search results (null = all channels)
  * @returns UseSearchReturn object with search state and control functions
  */
-export function useSearch(channelId: string | null = null, audioOnly: boolean = false): UseSearchReturn {
+export function useSearch(channelId: string | null = null, pureOnly: boolean = false): UseSearchReturn {
   const [query, setQueryState] = useState<string>("");
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -45,7 +45,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
         0,
         "latest",
         channelId,
-        audioOnly,
+        pureOnly,
       );
 
       if (isMountedRef.current) {
@@ -54,15 +54,13 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
     } catch (error) {
       console.error("Failed to load naats for search:", error);
     }
-  }, [channelId, audioOnly]);
+  }, [channelId, pureOnly]);
 
   /**
    * Perform semantic search using AI or fallback to client-side
    */
   const performSemanticSearch = useCallback(async (searchQuery: string) => {
-    const normalizedQuery = searchQuery.trim();
-
-    if (!normalizedQuery) {
+    if (!searchQuery.trim()) {
       setResults([]);
       setLoading(false);
       return;
@@ -74,16 +72,16 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       // Use semantic search if enabled, otherwise use client-side
       if (useSemanticSearch) {
         console.log("[Search] Using semantic search");
-        const searchResults = await appwriteService.semanticSearch(normalizedQuery);
+        const searchResults = await appwriteService.semanticSearch(searchQuery);
         
         // Filter by channel if specified
         let filteredResults = channelId
           ? searchResults.filter((naat) => naat.channelId === channelId)
           : searchResults;
 
-        // Filter by audio if specified
-        if (audioOnly) {
-          filteredResults = filteredResults.filter((naat) => !!naat.audioId);
+        // Filter by pure if specified
+        if (pureOnly) {
+          filteredResults = filteredResults.filter((naat) => !!naat.cutAudio);
         }
 
         if (isMountedRef.current) {
@@ -92,7 +90,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       } else {
         console.log("[Search] Using client-side search");
         // Use client-side search
-        const searchResults = searchItems(allNaatsRef.current, normalizedQuery, {
+        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
           searchInChannel: true,
           minScore: 60,
         });
@@ -106,7 +104,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       
       // Fallback to client-side search on any error
       try {
-        const searchResults = searchItems(allNaatsRef.current, normalizedQuery, {
+        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
           searchInChannel: true,
           minScore: 60,
         });
@@ -125,7 +123,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
         setLoading(false);
       }
     }
-  }, [channelId, useSemanticSearch, audioOnly]);
+  }, [channelId, useSemanticSearch, pureOnly]);
 
   /**
    * Set search query with debouncing
@@ -150,10 +148,10 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
       // Set loading state immediately for better UX
       setLoading(true);
 
-      // Set new timeout for debounced search (500ms for API calls)
+      // Small debounce to avoid excessive re-renders during typing
       debounceTimeoutRef.current = setTimeout(() => {
         performSemanticSearch(newQuery);
-      }, 500);
+      }, 150);
     },
     [performSemanticSearch],
   );
@@ -187,7 +185,7 @@ export function useSearch(channelId: string | null = null, audioOnly: boolean = 
         performSemanticSearch(query);
       });
     }
-  }, [channelId, audioOnly]); // Only depend on channelId/audioOnly to avoid infinite loops
+  }, [channelId, pureOnly]); // Only depend on channelId/pureOnly to avoid infinite loops
 
   // Cleanup on unmount
   useEffect(() => {

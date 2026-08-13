@@ -1,7 +1,11 @@
 /**
  * Appwrite Configuration for React Native/Expo
  *
- * This file contains hardcoded Appwrite configuration values.
+ * This file adapts the shared Appwrite config for Expo's environment variables.
+ * Environment variables must be prefixed with EXPO_PUBLIC_ to be accessible.
+ *
+ * Brand-specific values (Appwrite project, static export repo) come from
+ * brand.config.js — the only file that differs between family repos.
  */
 
 import {
@@ -9,32 +13,49 @@ import {
     validateAppwriteConfig as validateConfig,
 } from "@naat-collection/shared";
 
-/**
- * Static JSON fallback URLs (jsDelivr CDN)
- * These are used when Appwrite rate limits or payment limits are exceeded.
- * Run `node scripts/export-naats-to-json.js` to generate the exports,
- * commit them to the repo, and update the URLs below.
- */
-export const STATIC_FALLBACK_URLS = {
-  NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL ||
-    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/naats-export.json',
-  CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL ||
-    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/channels-export.json',
-};
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const brand = require("../brand.config.js");
 
-// Hardcoded configuration values
-const env = {
-  APPWRITE_ENDPOINT: "https://sgp.cloud.appwrite.io/v1",
-  APPWRITE_PROJECT_ID: "69cdf520001137b0e951",
-  APPWRITE_DATABASE_ID: "69cdf9f4000f8532e829",
-  APPWRITE_NAATS_COLLECTION_ID: "69cdf9f4003a2c23b94a",
-  APPWRITE_CHANNELS_COLLECTION_ID: "channels",
-  APPWRITE_AUDIO_CACHE_COLLECTION_ID: "695e43b700281bb0cc99",
+// Brand-provided fallback values
+const FALLBACK_CONFIG = {
+  APPWRITE_ENDPOINT: brand.appwrite.endpoint,
+  APPWRITE_PROJECT_ID: brand.appwrite.projectId,
+  APPWRITE_DATABASE_ID: brand.appwrite.databaseId,
+  APPWRITE_NAATS_COLLECTION_ID: brand.appwrite.naatsCollectionId,
+  APPWRITE_CHANNELS_COLLECTION_ID: brand.appwrite.channelsCollectionId,
+  APPWRITE_AUDIO_CACHE_COLLECTION_ID: brand.appwrite.audioCacheCollectionId,
   AUDIO_EXTRACTION_FUNCTION_URL: "",
   AUDIO_STREAMING_FUNCTION_URL: "",
   RAPIDAPI_KEY: "",
-  SEMANTIC_SEARCH_FUNCTION_URL: "https://69a8e9000021d2eaafd9.sgp.appwrite.run",
+  SEMANTIC_SEARCH_FUNCTION_URL: brand.appwrite.semanticSearchFunctionUrl,
   APPWRITE_VIEW_INCREMENT_FUNCTION_URL: "",
+};
+
+export const STATIC_FALLBACK_URLS = {
+  NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL || brand.static.naatsUrl,
+  CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL || brand.static.channelsUrl,
+};
+
+// Map Expo environment variables to shared config format with fallbacks
+const env = {
+  APPWRITE_ENDPOINT: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT || FALLBACK_CONFIG.APPWRITE_ENDPOINT,
+  APPWRITE_PROJECT_ID: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID || FALLBACK_CONFIG.APPWRITE_PROJECT_ID,
+  APPWRITE_DATABASE_ID: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID || FALLBACK_CONFIG.APPWRITE_DATABASE_ID,
+  APPWRITE_NAATS_COLLECTION_ID:
+    process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || FALLBACK_CONFIG.APPWRITE_NAATS_COLLECTION_ID,
+  APPWRITE_CHANNELS_COLLECTION_ID:
+    process.env.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID || FALLBACK_CONFIG.APPWRITE_CHANNELS_COLLECTION_ID,
+  APPWRITE_AUDIO_CACHE_COLLECTION_ID:
+    process.env.EXPO_PUBLIC_APPWRITE_AUDIO_CACHE_COLLECTION_ID || FALLBACK_CONFIG.APPWRITE_AUDIO_CACHE_COLLECTION_ID,
+  AUDIO_EXTRACTION_FUNCTION_URL:
+    process.env.EXPO_PUBLIC_AUDIO_EXTRACTION_FUNCTION_URL || FALLBACK_CONFIG.AUDIO_EXTRACTION_FUNCTION_URL,
+  AUDIO_STREAMING_FUNCTION_URL:
+    process.env.EXPO_PUBLIC_AUDIO_STREAMING_FUNCTION_URL || FALLBACK_CONFIG.AUDIO_STREAMING_FUNCTION_URL,
+  RAPIDAPI_KEY: process.env.EXPO_PUBLIC_RAPIDAPI_KEY || FALLBACK_CONFIG.RAPIDAPI_KEY,
+  SEMANTIC_SEARCH_FUNCTION_URL:
+    process.env.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL || FALLBACK_CONFIG.SEMANTIC_SEARCH_FUNCTION_URL,
+  APPWRITE_VIEW_INCREMENT_FUNCTION_URL:
+    process.env.EXPO_PUBLIC_APPWRITE_VIEW_INCREMENT_FUNCTION_URL || FALLBACK_CONFIG.APPWRITE_VIEW_INCREMENT_FUNCTION_URL,
 };
 
 console.log("[DEBUG] Appwrite Config Env:", {

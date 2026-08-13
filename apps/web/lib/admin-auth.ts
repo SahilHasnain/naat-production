@@ -14,6 +14,38 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
+export async function getAdminSession() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+
+  if (!sessionToken) {
+    return null;
+  }
+
+  try {
+    const payload = verifyAdminSessionToken(sessionToken);
+
+    if (!payload) {
+      return null;
+    }
+
+    return { user: { $id: payload.userId }, expiresAt: payload.expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+export async function requireAdminSession() {
+  const session = await getAdminSession();
+  const allowedUserId = getRequiredEnv("APPWRITE_ADMIN_USER_ID");
+
+  if (!session || session.user.$id !== allowedUserId) {
+    redirect("/login");
+  }
+
+  return session;
+}
+
 type AdminSessionPayload = {
   userId: string;
   expiresAt: number;
@@ -64,36 +96,4 @@ function verifyAdminSessionToken(token: string): AdminSessionPayload | null {
   }
 
   return payload;
-}
-
-export async function getAdminSession() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-
-  if (!sessionToken) {
-    return null;
-  }
-
-  try {
-    const payload = verifyAdminSessionToken(sessionToken);
-
-    if (!payload) {
-      return null;
-    }
-
-    return { user: { $id: payload.userId }, expiresAt: payload.expiresAt };
-  } catch {
-    return null;
-  }
-}
-
-export async function requireAdminSession() {
-  const session = await getAdminSession();
-  const allowedUserId = getRequiredEnv("APPWRITE_ADMIN_USER_ID");
-
-  if (!session || session.user.$id !== allowedUserId) {
-    redirect("/login");
-  }
-
-  return session;
 }

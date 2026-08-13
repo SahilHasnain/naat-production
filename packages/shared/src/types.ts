@@ -102,10 +102,10 @@ export interface IAppwriteService {
     offset: number,
     sortBy?: "latest" | "popular" | "oldest",
     channelId?: string | null,
-    audioOnly?: boolean,
+    pureOnly?: boolean,
   ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
-  searchNaats(query: string, channelId?: string | null, audioOnly?: boolean): Promise<Naat[]>;
+  searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]>;
   getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse>;
   getChannels(): Promise<Channel[]>;
   incrementAppView(naatId: string): Promise<void>;

@@ -1,7 +1,6 @@
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
-import { colors } from "@/constants/theme";
-import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext.web";
 import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import { LiveRadioProvider, useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { PlaybackModeProvider, usePlaybackMode } from "@/contexts/PlaybackModeContext";
@@ -60,13 +59,15 @@ function DesktopShell() {
         >
           <View style={{ marginBottom: 28 }}>
             <Text style={{ color: "#f6f7fb", fontSize: 26, fontWeight: "700" }}>
-              Naat
+              Owais Raza Qadri
             </Text>
           </View>
 
           <View style={{ gap: 10 }}>
             {navItems.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+
               return (
                 <Link key={item.href} href={item.href as never} asChild>
                   <Pressable
@@ -77,9 +78,13 @@ function DesktopShell() {
                       borderRadius: 16,
                       paddingHorizontal: 14,
                       paddingVertical: 14,
-                      backgroundColor: active ? "rgba(37, 99, 235, 0.18)" : "transparent",
+                      backgroundColor: active
+                        ? "rgba(37, 99, 235, 0.18)"
+                        : "transparent",
                       borderWidth: 1,
-                      borderColor: active ? "rgba(96, 165, 250, 0.35)" : "rgba(255,255,255,0.06)",
+                      borderColor: active
+                        ? "rgba(96, 165, 250, 0.35)"
+                        : "rgba(255,255,255,0.06)",
                     }}
                   >
                     <Ionicons
@@ -101,13 +106,16 @@ function DesktopShell() {
               );
             })}
           </View>
-
         </View>
 
         <View style={{ flex: 1 }}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ minHeight: "100%", padding: 28, paddingBottom: 140 }}
+            contentContainerStyle={{
+              minHeight: "100%",
+              padding: 28,
+              paddingBottom: 140,
+            }}
             showsVerticalScrollIndicator={false}
           >
             <Slot />
@@ -119,7 +127,10 @@ function DesktopShell() {
         <MiniPlayer onExpand={() => {}} networkIndicatorOffset={{ value: 0 } as any} />
       ) : null}
       {!isPlayerRoute && (showMiniPlayer || isLiveRadioActive) ? (
-        <LiveRadioMiniPlayer onExpand={() => {}} networkIndicatorOffset={{ value: 0 } as any} />
+        <LiveRadioMiniPlayer
+          onExpand={() => {}}
+          networkIndicatorOffset={{ value: 0 } as any}
+        />
       ) : null}
     </View>
   );

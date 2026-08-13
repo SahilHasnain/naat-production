@@ -133,15 +133,6 @@ const NaatCard: React.FC<NaatCardProps> = ({
               {formatDuration(duration)}
             </Text>
           </View>
-
-          {isCut && (
-            <View
-              className="absolute top-2 right-2 items-center justify-center rounded-full w-7 h-7"
-              style={{ backgroundColor: colors.accent.primary }}
-            >
-              <Ionicons name="cut-outline" size={11} color="#fff" />
-            </View>
-          )}
         </View>
 
         <View className="px-3 pb-3 pt-2.5">
@@ -167,7 +158,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               style={{ color: colors.text.tertiary }}
               numberOfLines={1}
             >
-              {formatViews(views)} views
+              {formatViews(views)} views{isCut && " • Pure"}
             </Text>
           </View>
         </View>
@@ -197,6 +188,4 @@ const arePropsEqual = (
 };
 
 export default React.memo(NaatCard, arePropsEqual);
-
-
 

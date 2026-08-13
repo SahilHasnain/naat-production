@@ -7,7 +7,7 @@ import { showErrorToast } from "@/utils/toast";
 import { hasAudio } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert } from "react-native";
 
 export function useNaatPlayback(displayData: Naat[]) {
   const router = useRouter();
@@ -48,7 +48,8 @@ export function useNaatPlayback(displayData: Naat[]) {
       router.push({
         pathname: "/video",
         params: {
-          videoUrl: naat.videoUrl,
+          naatId: naat.$id,
+          videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
           title: naat.title,
           channelName: naat.channelName,
           thumbnailUrl: naat.thumbnailUrl,
@@ -89,7 +90,8 @@ export function useNaatPlayback(displayData: Naat[]) {
           navigateToVideo(naat, audioId, true);
         } else {
           showVideoFallbackAlert(
-            naat, audioId,
+            naat,
+            audioId,
             "Audio is not available for this content. Would you like to play the video instead?",
           );
         }
@@ -105,10 +107,7 @@ export function useNaatPlayback(displayData: Naat[]) {
       try {
         let audioUrl: string;
         let isLocalFile = false;
-        const downloaded =
-          Platform.OS === "web"
-            ? false
-            : await audioDownloadService.isDownloaded(audioId);
+        const downloaded = await audioDownloadService.isDownloaded(audioId);
 
         if (downloaded) {
           audioUrl = audioDownloadService.getLocalPath(audioId);
@@ -124,7 +123,8 @@ export function useNaatPlayback(displayData: Naat[]) {
               navigateToVideo(naat, audioId, true);
             } else {
               showVideoFallbackAlert(
-                naat, audioId,
+                naat,
+                audioId,
                 "Audio is not available for this content. Would you like to play the video instead?",
               );
             }
@@ -151,7 +151,8 @@ export function useNaatPlayback(displayData: Naat[]) {
           navigateToVideo(naat, audioId, true);
         } else {
           showVideoFallbackAlert(
-            naat, audioId,
+            naat,
+            audioId,
             "Unable to load audio. Would you like to play the video instead?",
           );
         }
@@ -177,7 +178,7 @@ export function useNaatPlayback(displayData: Naat[]) {
     async (naatId: string) => {
       const naat = await getNaatById(naatId);
       if (!naat) return;
-      
+
       console.log(`[useNaatPlayback] Naat pressed: "${naat.title}"`, {
         cutAudio: naat.cutAudio,
         audioId: naat.audioId,

@@ -57,7 +57,7 @@ const AUTOPLAY_KEY = "@audio_autoplay_enabled";
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { setMode, isLiveRadioActive } = usePlaybackMode();
+  const { setMode, isLiveRadioActive, isNormalAudioActive } = usePlaybackMode();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
   const isRepeatEnabledRef = useRef(false);
@@ -80,16 +80,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isABRepeatActive, setIsABRepeatActive] = useState(false);
 
   useEffect(() => {
-    abRepeatPointARef.current = abRepeatPointA;
-  }, [abRepeatPointA]);
-
-  useEffect(() => {
     isRepeatEnabledRef.current = isRepeatEnabled;
+    if (audioRef.current) {
+      audioRef.current.loop = isRepeatEnabled;
+    }
   }, [isRepeatEnabled]);
 
   useEffect(() => {
     isAutoplayEnabledRef.current = isAutoplayEnabled;
   }, [isAutoplayEnabled]);
+
+  useEffect(() => {
+    abRepeatPointARef.current = abRepeatPointA;
+  }, [abRepeatPointA]);
 
   useEffect(() => {
     abRepeatPointBRef.current = abRepeatPointB;
@@ -106,32 +109,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           AsyncStorage.getItem(REPEAT_KEY),
           AsyncStorage.getItem(AUTOPLAY_KEY),
         ]);
+
         if (repeatValue !== null) {
           setIsRepeatEnabled(repeatValue === "true");
         }
         if (autoplayValue !== null) {
           setIsAutoplayEnabled(autoplayValue === "true");
         }
-      } catch {}
+      } catch (err) {
+        console.error("[AudioContext.web] Error loading preferences:", err);
+      }
     };
 
     loadPreferences();
   }, []);
 
   useEffect(() => {
-    const audio = new Audio();
+    const audio = new globalThis.Audio();
     audio.preload = "auto";
-    audio.crossOrigin = "anonymous";
-    audio.volume = 1;
+    audio.volume = volume;
+    audio.loop = isRepeatEnabledRef.current;
     audioRef.current = audio;
 
-    const handleLoadedMetadata = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration * 1000 : 0);
-    };
+    const syncTime = () => {
+      const nextPosition = Math.floor(audio.currentTime * 1000);
+      const nextDuration = Number.isFinite(audio.duration)
+        ? Math.floor(audio.duration * 1000)
+        : 0;
 
-    const handleTimeUpdate = () => {
-      const nextPosition = audio.currentTime * 1000;
       setPosition(nextPosition);
+      setDuration(nextDuration);
 
       if (
         isABRepeatActiveRef.current &&
@@ -143,150 +150,134 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    const handlePlaying = () => {
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setError(null);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setDuration(Number.isFinite(audio.duration) ? Math.floor(audio.duration * 1000) : 0);
+    };
+
+    const handlePlay = () => {
       setIsPlaying(true);
       setIsLoading(false);
-      setMode("normal");
     };
 
     const handlePause = () => {
       setIsPlaying(false);
-      setIsLoading(false);
-    };
-
-    const handleWaiting = () => {
-      setIsLoading(true);
     };
 
     const handleEnded = async () => {
       setIsPlaying(false);
       setPosition(0);
-      if (isRepeatEnabledRef.current) {
-        audio.currentTime = 0;
-        await audio.play();
+
+      if (!isNormalAudioActive) {
         return;
       }
+
       if (isAutoplayEnabledRef.current && autoplayCallbackRef.current) {
         await autoplayCallbackRef.current();
       }
     };
 
     const handleError = () => {
-      setError(new Error("Unable to play audio."));
-      setIsPlaying(false);
+      const mediaError = audio.error;
+      const nextError = new Error(
+        mediaError?.message || "Audio playback failed on web",
+      );
+      setError(nextError);
       setIsLoading(false);
+      setIsPlaying(false);
     };
 
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("loadstart", handleLoadStart);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("loadedmetadata", syncTime);
+    audio.addEventListener("timeupdate", syncTime);
+    audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
-    audio.addEventListener("waiting", handleWaiting);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("error", handleError);
 
     return () => {
       audio.pause();
       audio.src = "";
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("loadstart", handleLoadStart);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("loadedmetadata", syncTime);
+      audio.removeEventListener("timeupdate", syncTime);
+      audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("waiting", handleWaiting);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
       audioRef.current = null;
     };
-  }, [setMode]);
+  }, [isNormalAudioActive, volume]);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
-
-  useEffect(() => {
-    if (isLiveRadioActive) {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.pause();
-      }
-      setIsPlaying(false);
+    if (isLiveRadioActive && isLoading) {
       setIsLoading(false);
     }
-  }, [isLiveRadioActive]);
+  }, [isLiveRadioActive, isLoading]);
 
   const loadAndPlay = useCallback(
-    async (audioMetadata: AudioMetadata) => {
-      const audio = audioRef.current;
-      if (!audio) {
-        return;
+    async (audio: AudioMetadata) => {
+      const player = audioRef.current;
+      if (!player) {
+        throw new Error("Web audio player is not initialized");
       }
 
       try {
+        setMode("normal");
         setError(null);
         setIsLoading(true);
+        setCurrentAudio(audio);
+        setPosition(0);
+        setDuration(0);
         setAbRepeatPointA(null);
         setAbRepeatPointB(null);
         setIsABRepeatActive(false);
-        setMode("normal");
-        audio.src = audioMetadata.audioUrl;
-        audio.currentTime = 0;
-        audio.volume = volume;
-        setCurrentAudio(audioMetadata);
-        audio.load();
-        await audio.play();
+
+        player.pause();
+        player.src = audio.audioUrl;
+        player.currentTime = 0;
+        player.volume = volume;
+        player.loop = isRepeatEnabledRef.current;
+        player.load();
+
+        await player.play();
       } catch (err) {
-        setError(err as Error);
+        const nextError = err instanceof Error ? err : new Error(String(err));
+        console.error("[AudioContext.web] Error loading audio:", nextError);
+        setError(nextError);
         setIsLoading(false);
         setIsPlaying(false);
+        setCurrentAudio(null);
       }
     },
     [setMode, volume],
   );
 
   const play = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio) {
-      return;
+    const player = audioRef.current;
+    if (!player) return;
+
+    try {
+      await player.play();
+    } catch (err) {
+      const nextError = err instanceof Error ? err : new Error(String(err));
+      console.error("[AudioContext.web] Error playing:", nextError);
+      setError(nextError);
     }
-    await audio.play();
   }, []);
 
   const pause = useCallback(async () => {
-    audioRef.current?.pause();
+    const player = audioRef.current;
+    if (!player) return;
+    player.pause();
   }, []);
-
-  const seek = useCallback(async (positionMillis: number) => {
-    const audio = audioRef.current;
-    if (!audio) {
-      return;
-    }
-    audio.currentTime = positionMillis / 1000;
-    setPosition(positionMillis);
-  }, []);
-
-  const setVolume = useCallback(async (nextVolume: number) => {
-    setVolumeState(nextVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = nextVolume;
-    }
-  }, []);
-
-  const stop = useCallback(async () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      audio.src = "";
-    }
-    setCurrentAudio(null);
-    setIsPlaying(false);
-    setPosition(0);
-    setDuration(0);
-    setError(null);
-    setIsLoading(false);
-    setMode("none");
-  }, [setMode]);
 
   const togglePlayPause = useCallback(async () => {
     if (isPlaying) {
@@ -296,16 +287,55 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isPlaying, pause, play]);
 
+  const seek = useCallback(async (positionMillis: number) => {
+    const player = audioRef.current;
+    if (!player) return;
+    player.currentTime = positionMillis / 1000;
+    setPosition(positionMillis);
+  }, []);
+
+  const setVolume = useCallback(async (newVolume: number) => {
+    setVolumeState(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  }, []);
+
+  const stop = useCallback(async () => {
+    const player = audioRef.current;
+    if (player) {
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+    }
+
+    setCurrentAudio(null);
+    setIsPlaying(false);
+    setIsLoading(false);
+    setPosition(0);
+    setDuration(0);
+    setError(null);
+    setMode("none");
+  }, [setMode]);
+
   const toggleRepeat = useCallback(async () => {
     const nextValue = !isRepeatEnabled;
     setIsRepeatEnabled(nextValue);
-    await AsyncStorage.setItem(REPEAT_KEY, String(nextValue));
+    try {
+      await AsyncStorage.setItem(REPEAT_KEY, String(nextValue));
+    } catch (err) {
+      console.error("[AudioContext.web] Error saving repeat preference:", err);
+    }
   }, [isRepeatEnabled]);
 
   const toggleAutoplay = useCallback(async () => {
     const nextValue = !isAutoplayEnabled;
     setIsAutoplayEnabled(nextValue);
-    await AsyncStorage.setItem(AUTOPLAY_KEY, String(nextValue));
+    try {
+      await AsyncStorage.setItem(AUTOPLAY_KEY, String(nextValue));
+    } catch (err) {
+      console.error("[AudioContext.web] Error saving autoplay preference:", err);
+    }
   }, [isAutoplayEnabled]);
 
   const setAutoplayCallback = useCallback(
@@ -315,14 +345,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const setABRepeatPointAFunc = useCallback((nextPosition: number | null) => {
-    setAbRepeatPointA(nextPosition);
+  const setABRepeatPointAFunc = useCallback((point: number | null) => {
+    setAbRepeatPointA(point);
   }, []);
 
   const setABRepeatPointBFunc = useCallback(
-    (nextPosition: number | null) => {
-      setAbRepeatPointB(nextPosition);
-      if (nextPosition !== null && abRepeatPointA !== null) {
+    (point: number | null) => {
+      setAbRepeatPointB(point);
+      if (point !== null && abRepeatPointA !== null) {
         setIsABRepeatActive(true);
       }
     },
@@ -341,40 +371,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [abRepeatPointA, abRepeatPointB]);
 
-  return (
-    <AudioContext.Provider
-      value={{
-        currentAudio,
-        isPlaying,
-        isLoading,
-        position,
-        duration,
-        volume,
-        error,
-        isRepeatEnabled,
-        isAutoplayEnabled,
-        abRepeatPointA,
-        abRepeatPointB,
-        isABRepeatActive,
-        loadAndPlay,
-        play,
-        pause,
-        seek,
-        setVolume,
-        stop,
-        togglePlayPause,
-        toggleRepeat,
-        toggleAutoplay,
-        setAutoplayCallback,
-        setABRepeatPointA: setABRepeatPointAFunc,
-        setABRepeatPointB: setABRepeatPointBFunc,
-        clearABRepeat,
-        toggleABRepeat,
-      }}
-    >
-      {children}
-    </AudioContext.Provider>
-  );
+  const value: AudioContextType = {
+    currentAudio,
+    isPlaying,
+    isLoading,
+    position,
+    duration,
+    volume,
+    error,
+    isRepeatEnabled,
+    isAutoplayEnabled,
+    abRepeatPointA,
+    abRepeatPointB,
+    isABRepeatActive,
+    loadAndPlay,
+    play,
+    pause,
+    seek,
+    setVolume,
+    stop,
+    togglePlayPause,
+    toggleRepeat,
+    toggleAutoplay,
+    setAutoplayCallback,
+    setABRepeatPointA: setABRepeatPointAFunc,
+    setABRepeatPointB: setABRepeatPointBFunc,
+    clearABRepeat,
+    toggleABRepeat,
+  };
+
+  return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
 };
 
 export const useAudioPlayer = () => {

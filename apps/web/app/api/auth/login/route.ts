@@ -29,7 +29,6 @@ export async function POST(request: Request) {
     const endpoint = getRequiredEnv("NEXT_PUBLIC_APPWRITE_ENDPOINT");
     const projectId = getRequiredEnv("NEXT_PUBLIC_APPWRITE_PROJECT_ID");
     const allowedUserId = getRequiredEnv("APPWRITE_ADMIN_USER_ID");
-
     const response = await fetch(`${endpoint}/account/sessions/email`, {
       method: "POST",
       headers: {

@@ -12,20 +12,20 @@ export function useHomeFilters() {
   const [selectedFilter, setSelectedFilter] = useState<SortOption>("forYou");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<DurationOption>("all");
-  const [audioOnly, setAudioOnly] = useState(false);
+  const [pureOnly, setPureOnly] = useState(false);
 
   // Search-specific filters
   const [searchChannelId, setSearchChannelId] = useState<string | null>(null);
   const [searchDuration, setSearchDuration] = useState<DurationOption>("all");
-  const [searchAudioOnly, setSearchAudioOnly] = useState(false);
+  const [searchPureOnly, setSearchPureOnly] = useState(false);
 
   const { showFilterModal, setShowFilterModal } = useFilterModal();
   const { isSearchActive, activeSearchQuery } = useSearchContext();
 
   // Data fetching
   const { channels, loading: channelsLoading, refresh: refreshChannels } = useChannels();
-  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(selectedChannelId, selectedFilter, audioOnly);
-  const { results: searchResults, loading: searchLoading, setQuery } = useSearch(searchChannelId, searchAudioOnly);
+  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(selectedChannelId, selectedFilter, pureOnly);
+  const { results: searchResults, loading: searchLoading, setQuery } = useSearch(searchChannelId, searchPureOnly);
 
   const isShowingSearchResults = isSearchActive && activeSearchQuery.length > 0;
 
@@ -46,12 +46,12 @@ export function useHomeFilters() {
     selectedFilter !== "forYou" ||
     selectedChannelId !== null ||
     selectedDuration !== "all" ||
-    audioOnly;
+    pureOnly;
 
   const resetSearchFilters = useCallback(() => {
     setSearchChannelId(null);
     setSearchDuration("all");
-    setSearchAudioOnly(false);
+    setSearchPureOnly(false);
   }, []);
 
   return {
@@ -59,11 +59,11 @@ export function useHomeFilters() {
     selectedFilter, setSelectedFilter,
     selectedChannelId, setSelectedChannelId,
     selectedDuration, setSelectedDuration,
-    audioOnly, setAudioOnly,
+    pureOnly, setPureOnly,
     // Search filters
     searchChannelId, setSearchChannelId,
     searchDuration, setSearchDuration,
-    searchAudioOnly, setSearchAudioOnly,
+    searchPureOnly, setSearchPureOnly,
     resetSearchFilters,
     // Filter modal
     showFilterModal, setShowFilterModal,

@@ -81,7 +81,6 @@ export default function HomeScreen() {
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
     {
-      naats: filters.naats,
       maxSuggestions: 10,
     },
   );
@@ -133,11 +132,11 @@ export default function HomeScreen() {
   // --- Search orchestration effects ---
 
   useEffect(() => {
-    if (isSearchActive) updateSuggestions(searchInput);
+    if (isSearchActive) updateSuggestions();
   }, [searchInput, isSearchActive, updateSuggestions]);
 
   useEffect(() => {
-    if (activeSearchQuery && searchInput.trim() !== activeSearchQuery) {
+    if (activeSearchQuery && searchInput !== activeSearchQuery) {
       setActiveSearchQuery("");
     }
   }, [searchInput, activeSearchQuery, setActiveSearchQuery]);
@@ -186,7 +185,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId, filters.audioOnly]);
+  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
 
   useEffect(() => {
     const autoPlayNaatId =
@@ -426,8 +425,8 @@ export default function HomeScreen() {
                     onChannelChange={filters.setSearchChannelId}
                     selectedDuration={filters.searchDuration}
                     onDurationChange={filters.setSearchDuration}
-                    audioOnly={filters.searchAudioOnly}
-                    onAudioOnlyChange={filters.setSearchAudioOnly}
+                    pureOnly={filters.searchPureOnly}
+                    onPureOnlyChange={filters.setSearchPureOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
@@ -469,8 +468,8 @@ export default function HomeScreen() {
                     channelsLoading={filters.channelsLoading}
                     selectedDuration={filters.selectedDuration}
                     onDurationChange={filters.setSelectedDuration}
-                    audioOnly={filters.audioOnly}
-                    onAudioOnlyChange={filters.setAudioOnly}
+                    pureOnly={filters.pureOnly}
+                    onPureOnlyChange={filters.setPureOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}
@@ -566,5 +565,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-

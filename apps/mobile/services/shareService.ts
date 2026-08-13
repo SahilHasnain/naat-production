@@ -15,8 +15,8 @@ export interface ShareOptions {
 }
 
 // Deep link scheme for the app
-const APP_SCHEME = "naatproduction";
-const SHARE_BASE_URL = "https://naatproduction.appwrite.network";
+const APP_SCHEME = "ubaidraza";
+const SHARE_BASE_URL = "https://owaisrazaqadri.appwrite.network";
 
 /**
  * Generate a deep link URL that opens in the app
@@ -116,7 +116,7 @@ export async function shareCurrentAudio(
   try {
     let message = `🎵 ${title}`;
 
-    if (naatId && youtubeId) {
+      if (naatId && youtubeId) {
       const webUrl = generateShareUrl(naatId, youtubeId);
       message += `\n\n${webUrl}`;
     } else if (youtubeId) {

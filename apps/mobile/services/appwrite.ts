@@ -69,22 +69,23 @@ export class AppwriteService implements IAppwriteService {
     offset: number = 0,
     sortBy: "latest" | "popular" | "oldest" = "latest",
     channelId?: string | null,
-    audioOnly?: boolean,
+    pureOnly?: boolean,
   ): Promise<Naat[]> {
     const channelKey = channelId || "all";
-    const audioKey = audioOnly ? "_audio" : "";
-    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}${audioKey}`;
+    const pureKey = pureOnly ? "_pure" : "";
+    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}${pureKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.getNaats(limit, offset, sortBy, channelId, audioOnly),
+        () => this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,
           maxAttempts: 3,
         },
       );
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[DEBUG getNaats] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
       const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
       logError(wrappedError, {
         context: "getNaats",
@@ -94,15 +95,7 @@ export class AppwriteService implements IAppwriteService {
         channelId,
       });
 
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        "Unable to load naats. Please check your internet connection.",
-        ErrorCode.NETWORK_ERROR,
-        true,
-      );
+      throw wrappedError;
     }
   }
 
@@ -129,61 +122,49 @@ export class AppwriteService implements IAppwriteService {
           maxAttempts: 3,
         },
       );
-    } catch (error) {
-      logError(wrapError(error, ErrorCode.API_ERROR), {
+    } catch (error: any) {
+      console.error("[DEBUG getNaatById] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      const wrappedError = wrapError(error, ErrorCode.API_ERROR);
+      logError(wrappedError, {
         context: "getNaatById",
         id,
       });
 
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        "Unable to load naat details. Please try again.",
-        ErrorCode.API_ERROR,
-        true,
-      );
+      throw wrappedError;
     }
   }
 
   /**
    * Searches for naats matching the provided query string
    */
-  async searchNaats(query: string, channelId?: string | null, audioOnly?: boolean): Promise<Naat[]> {
+  async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
     if (!query || query.trim() === "") {
       return [];
     }
 
     const channelKey = channelId || "all";
-    const audioKey = audioOnly ? "_audio" : "";
-    const cacheKey = `search_${channelKey}_${query}${audioKey}`;
+    const pureKey = pureOnly ? "_pure" : "";
+    const cacheKey = `search_${channelKey}_${query}${pureKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.searchNaats(query, channelId, audioOnly),
+        () => this.baseService.searchNaats(query, channelId, pureOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,
           maxAttempts: 3,
         },
       );
-    } catch (error) {
-      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+    } catch (error: any) {
+      console.error("[DEBUG searchNaats] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
+      logError(wrappedError, {
         context: "searchNaats",
         query,
         channelId,
       });
 
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        "Search failed. Please check your connection and try again.",
-        ErrorCode.NETWORK_ERROR,
-        true,
-      );
+      throw wrappedError;
     }
   }
 
@@ -202,20 +183,14 @@ export class AppwriteService implements IAppwriteService {
           maxAttempts: 3,
         },
       );
-    } catch (error) {
-      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+    } catch (error: any) {
+      console.error("[DEBUG getChannels] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
+      logError(wrappedError, {
         context: "getChannels",
       });
 
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        "Unable to load channels. Please check your internet connection.",
-        ErrorCode.NETWORK_ERROR,
-        true,
-      );
+      throw wrappedError;
     }
   }
 
@@ -224,20 +199,6 @@ export class AppwriteService implements IAppwriteService {
    */
   async getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse> {
     return this.baseService.getAudioUrl(audioId);
-  }
-
-  /**
-   * Increments the in-app view count (appView) for a naat.
-   * Fire-and-forget: never throws, so playback is never interrupted.
-   */
-  async incrementAppView(naatId: string): Promise<void> {
-    if (!naatId) return;
-
-    try {
-      await this.baseService.incrementAppView(naatId);
-    } catch (error: any) {
-      console.log("[appwrite] incrementAppView failed (non-fatal):", error);
-    }
   }
 
   /**
@@ -314,6 +275,33 @@ export class AppwriteService implements IAppwriteService {
       console.warn("Semantic search failed, falling back to regular search");
       return this.searchNaats(query);
     }
+  }
+  /**
+   * Check if service is currently using static fallback mode
+   */
+  isInFallbackMode(): boolean {
+    return this.baseService.isInFallbackMode();
+  }
+
+  /**
+   * Increments the in-app view count (appView) for a naat.
+   * Fire-and-forget: never throws, so playback is never interrupted.
+   */
+  async incrementAppView(naatId: string): Promise<void> {
+    if (!naatId) return;
+
+    try {
+      await this.baseService.incrementAppView(naatId);
+    } catch (error: any) {
+      console.log("[appwrite] incrementAppView failed (non-fatal):", error);
+    }
+  }
+
+  /**
+   * Get the current data source (useful for dev mode debugging)
+   */
+  getDataSource(): 'static' | 'appwrite' {
+    return (this.baseService as any).dataSource;
   }
 }
 

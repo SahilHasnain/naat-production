@@ -147,7 +147,7 @@ export function AnimatedHeader({
                 className="text-lg font-semibold"
                 style={{ color: colors.text.primary }}
               >
-                Naat Production
+                Owais Raza Qadri
               </Text>
             </View>
           </View>

@@ -73,12 +73,12 @@ Tabs: All | Main Channel | Other
 ### Current Setup
 
 - Baghdadi Sound & Video: `isOfficial=false`, `isOther=false` (Main channel)
-- Naat Production: `isOfficial=true`, `isOther=false` (Main channel)
+- Owais Raza Qadri: `isOfficial=true`, `isOther=false` (Main channel)
 
 ### Expected Behavior
 
 ```
-Tabs: All | Baghdadi Sound & Video | Naat Production
+Tabs: All | Baghdadi Sound & Video | Owais Raza Qadri
 ```
 
 ### To Test "Other" Tab
@@ -97,7 +97,7 @@ Add a channel with `isOther=true`:
 Then you'll see:
 
 ```
-Tabs: All | Baghdadi Sound & Video | Naat Production | Other
+Tabs: All | Baghdadi Sound & Video | Owais Raza Qadri | Other
 ```
 
 ## Benefits

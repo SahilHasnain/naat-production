@@ -6,16 +6,13 @@ import {
   removeFromSearchHistory,
   SearchHistoryItem,
 } from "@/services/searchHistory";
-import { type Naat } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 
 interface UseSearchSuggestionsOptions {
-  naats: Naat[];
   maxSuggestions?: number;
 }
 
 export function useSearchSuggestions({
-  naats: _naats,
   maxSuggestions = 10,
 }: UseSearchSuggestionsOptions) {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
@@ -47,7 +44,7 @@ export function useSearchSuggestions({
   }, [history, generateSuggestions]);
 
   const updateSuggestions = useCallback(
-    (_query: string) => {
+    () => {
       setSuggestions(generateSuggestions());
     },
     [generateSuggestions],

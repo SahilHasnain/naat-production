@@ -15,8 +15,17 @@ export default function DownloadsWebScreen() {
         padding: 32,
       }}
     >
-      <Text style={{ color: "#f8fbff", fontSize: 28, fontWeight: "800" }}>Downloads stay on mobile</Text>
-      <Text style={{ color: "rgba(255,255,255,0.56)", marginTop: 10, textAlign: "center", maxWidth: 520 }}>
+      <Text style={{ color: "#f8fbff", fontSize: 28, fontWeight: "800" }}>
+        Downloads stay on mobile
+      </Text>
+      <Text
+        style={{
+          color: "rgba(255,255,255,0.56)",
+          marginTop: 10,
+          textAlign: "center",
+          maxWidth: 520,
+        }}
+      >
         Downloads are available in the app.
       </Text>
     </View>

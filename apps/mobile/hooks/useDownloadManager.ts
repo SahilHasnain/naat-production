@@ -4,7 +4,6 @@ import type { Naat } from "@/types";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
 import React, { useState } from "react";
-import { Platform } from "react-native";
 
 type DownloadState = {
   isDownloaded: boolean;
@@ -17,10 +16,6 @@ export function useDownloadManager(displayData: Naat[]) {
 
   // Check download status for visible naats
   React.useEffect(() => {
-    if (Platform.OS === "web") {
-      return;
-    }
-
     const checkDownloads = async () => {
       const updates: Record<string, DownloadState> = {};
       for (const naat of displayData) {
@@ -38,11 +33,6 @@ export function useDownloadManager(displayData: Naat[]) {
   }, [displayData]);
 
   const handleDownload = React.useCallback(async (naat: Naat) => {
-    if (Platform.OS === "web") {
-      showErrorToast("Downloads are only available on mobile");
-      return;
-    }
-
     const audioId = getPreferredAudioId(naat);
     if (!audioId) {
       showErrorToast("Audio not available for download");

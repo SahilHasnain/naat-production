@@ -106,7 +106,7 @@ async function main() {
   }
 
   console.log("\n📝 All 'other' channels now have:");
-  console.log("  - isOfficial: false (will filter for Naat Production only)");
+  console.log("  - isOfficial: false (will filter for Owais Raza Qadri only)");
   console.log("  - isOther: true (will appear in 'Other' tab)");
 }
 

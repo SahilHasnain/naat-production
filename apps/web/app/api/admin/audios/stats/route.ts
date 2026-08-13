@@ -47,16 +47,31 @@ async function getAllAudioFileIds() {
   return fileIds;
 }
 
+function getReferencedAudioIds(naat: Record<string, unknown>) {
+  return [naat.audioId, naat.cutAudio]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+}
+
 export async function GET() {
   try {
     const [naats, audioFiles] = await Promise.all([fetchAllNaats(), getAllAudioFileIds()]);
 
     const withAudio = naats.filter((naat) => Boolean(String(naat.audioId || "").trim()));
     const withCutAudio = naats.filter((naat) => Boolean(String(naat.cutAudio || "").trim()));
-    const withoutAudio = naats.filter((naat) => !String(naat.audioId || "").trim());
+    const withoutAudio = naats.filter(
+      (naat) =>
+        !String(naat.audioId || "").trim() &&
+        !String(naat.cutAudio || "").trim()
+    );
 
-    const referencedAudioIds = new Set(withAudio.map((naat) => String(naat.audioId)));
+    const referencedAudioIds = new Set(
+      naats.flatMap((naat) => getReferencedAudioIds(naat))
+    );
     const orphanedAudioFiles = [...audioFiles].filter((fileId) => !referencedAudioIds.has(fileId)).length;
+    const brokenAudioReferences = naats.filter((naat) =>
+      getReferencedAudioIds(naat).some((fileId) => !audioFiles.has(fileId))
+    );
 
     return NextResponse.json({
       totalNaats: naats.length,
@@ -64,6 +79,7 @@ export async function GET() {
       withoutAudio: withoutAudio.length,
       withCutAudio: withCutAudio.length,
       orphanedAudioFiles,
+      brokenAudioReferences: brokenAudioReferences.length,
       sampleMissing: withoutAudio.slice(0, 12).map((naat) => ({
         $id: String(naat.$id),
         title: String(naat.title || "Untitled"),

@@ -1,5 +1,5 @@
-import { NextRequest } from "next/server";
 import { spawn } from "child_process";
+import { NextRequest } from "next/server";
 import { join } from "path";
 
 export const maxDuration = 1800;
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const encoder = new TextEncoder();
     const repoRoot = join(process.cwd(), "..", "..");
-    const scriptPath = join(repoRoot, "scripts", "utilities", "download-audio.js");
+    const scriptPath = join(repoRoot, "scripts", "utilities", "download-audio-with-cookies.js");
 
     const stream = new ReadableStream({
       start(controller) {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Failed to start audio batch" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

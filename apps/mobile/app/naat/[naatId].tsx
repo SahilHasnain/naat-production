@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
 
-const APP_SCHEME = "naatproduction";
+const APP_SCHEME = "ubaidraza";
 
 export default function SharedNaatRedirectScreen() {
   const router = useRouter();

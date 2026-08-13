@@ -4,7 +4,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import Pressable from "@/components/ResponsivePressable";
-import ReviewPromptModal from "@/components/ReviewPromptModal";
 import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import { FilterModalProvider } from "@/contexts/FilterModalContext";
@@ -29,16 +28,20 @@ import {
   useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
+import { useAppMessage } from "@/hooks/useAppMessage";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
+import { appwriteService } from "@/services/appwrite";
+import AppMessageBanner from "@/components/AppMessageBanner";
+import ReviewPromptModal from "@/components/ReviewPromptModal";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import {
@@ -46,6 +49,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import "../global.css";
+import WebRootLayout from "./_layout.web";
 
 // Initialize Sentry
 Sentry.init({
@@ -85,12 +89,14 @@ function RootLayoutContent() {
   const isOnLiveTab = segments[0] === "live";
 
   // Check if user is on video screen
-  const currentSegment = segments[0] as string | undefined;
-  const isOnVideoScreen = currentSegment === "video";
-  const isOnPlayerScreen = currentSegment === "player";
+  const isOnVideoScreen = segments[0] === "video";
+  const isOnPlayerScreen = segments[0] === "player";
 
   // Check if user is on homepage (home route) - only enable filter on homepage
   const isOnHomepage = segments[0] === "home" || segments[0] === undefined;
+
+  // App update / announcement message
+  const { message: appMessage, dismiss, preview: previewMessage } = useAppMessage();
 
   // Network status for offline handling
   const { isConnected } = useNetworkStatus();
@@ -313,7 +319,7 @@ function RootLayoutContent() {
         !isOnVideoScreen &&
         !isOnPlayerScreen && (
           <MiniPlayer
-            onExpand={() => router.push("/player" as never)}
+            onExpand={() => router.push("/player?source=" + segments[0])}
             networkIndicatorOffset={networkIndicatorOffset}
           />
         )}
@@ -331,14 +337,6 @@ function RootLayoutContent() {
           />
         )}
 
-      {/* In-app review prompt */}
-      <ReviewPromptModal
-        visible={reviewPrompt.visible}
-        onClose={reviewPrompt.onClose}
-        onRate={reviewPrompt.onRate}
-        onSnooze={reviewPrompt.onSnooze}
-        onNever={reviewPrompt.onNever}
-      />
 
       {/* Connection status bar — sits below tab bar, above system nav */}
       {(!isConnected || showBackOnline) && (
@@ -370,6 +368,20 @@ function RootLayoutContent() {
           </Text>
         </View>
       )}
+
+      {/* App update message banner */}
+      {appMessage && (
+        <AppMessageBanner message={appMessage} onDismiss={dismiss} />
+      )}
+
+      {/* In-app review prompt */}
+      <ReviewPromptModal
+        visible={reviewPrompt.visible}
+        onClose={reviewPrompt.onClose}
+        onRate={reviewPrompt.onRate}
+        onSnooze={reviewPrompt.onSnooze}
+        onNever={reviewPrompt.onNever}
+      />
 
       {/* Offline modal — shown when connection drops while using the app */}
       {showOfflineModal && (
@@ -491,7 +503,7 @@ function RootLayoutContent() {
             position: "absolute",
             top: insets.top + 8,
             left: 8,
-            backgroundColor: "#e65100",
+            backgroundColor: appwriteService.getDataSource() === 'static' ? '#1b5e20' : '#e65100',
             paddingVertical: 3,
             paddingHorizontal: 8,
             borderRadius: 4,
@@ -501,7 +513,7 @@ function RootLayoutContent() {
           accessibilityLabel="Force show review prompt"
         >
           <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
-            🗄️ Dev
+            {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
           </Text>
         </Pressable>
       )}
@@ -510,6 +522,10 @@ function RootLayoutContent() {
 }
 
 function RootLayout() {
+  if (Platform.OS === "web") {
+    return <WebRootLayout />;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
@@ -540,6 +556,3 @@ function RootLayout() {
 }
 
 export default Sentry.wrap(RootLayout);
-
-
-

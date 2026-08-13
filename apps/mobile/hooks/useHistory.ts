@@ -270,4 +270,3 @@ export function useHistory(): UseHistoryReturn {
     removeFromHistory,
   };
 }
-

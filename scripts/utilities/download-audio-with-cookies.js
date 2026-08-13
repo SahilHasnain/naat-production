@@ -1,7 +1,8 @@
-#!/usr/bin/env node
-
 /**
  * Audio Download and Upload Script with YouTube cookies
+ *
+ * This variant mirrors the newer cookie-based yt-dlp flow used by the
+ * Appwrite extract-audio function.
  *
  * Usage:
  *   node scripts/utilities/download-audio-with-cookies.js [--limit=10] [--test]
@@ -22,17 +23,20 @@ const { Client, Databases, Query, Storage, ID } = require("node-appwrite");
 const { InputFile } = require("node-appwrite/file");
 const { join } = require("path");
 
-dotenv.config({ path: "apps/mobile/.env.local" });
+dotenv.config({ path: "apps/mobile/.env" });
 
 const APPWRITE_ENDPOINT =
   process.env.APPWRITE_ENDPOINT ||
-  process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
+  process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT ||
+  process.env.ENDPOINT;
 const APPWRITE_PROJECT_ID =
   process.env.APPWRITE_PROJECT_ID ||
-  process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
+  process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID ||
+  process.env.PROJECTID;
 const APPWRITE_API_KEY =
   process.env.APPWRITE_API_KEY ||
-  process.env.APPWRITE_SECRET_KEY;
+  process.env.APPWRITE_SECRET_KEY ||
+  process.env.API_KEY;
 const DATABASE_ID =
   process.env.APPWRITE_DATABASE_ID || process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
 const NAATS_COLLECTION_ID =
@@ -86,7 +90,7 @@ function getCookiesPath() {
   }
 
   throw new Error(
-    "No cookies file found. Expected cookies.txt in repo root or YTDLP_COOKIES_PATH.",
+    "No cookies file found. Expected cookies.txt in repo root or YTDLP_COOKIES_PATH."
   );
 }
 
@@ -163,7 +167,11 @@ async function uploadAudio(filePath, youtubeId) {
   const fileSizeMB = (statSync(filePath).size / 1024 / 1024).toFixed(2);
   console.log(`  File size: ${fileSizeMB}MB`);
 
-  const file = await storage.createFile(AUDIO_BUCKET_ID, ID.unique(), InputFile.fromPath(filePath, `${youtubeId}.m4a`));
+  const file = await storage.createFile({
+    bucketId: AUDIO_BUCKET_ID,
+    fileId: ID.unique(),
+    file: InputFile.fromPath(filePath, `${youtubeId}.m4a`),
+  });
 
   console.log(`  Uploaded: ${file.$id}`);
   return file.$id;

@@ -10,11 +10,11 @@ const durationFilters: {
   label: string;
   iconName: keyof typeof Ionicons.glyphMap;
 }[] = [
-    { value: "all", label: "All", iconName: "infinite" },
-    { value: "short", label: "< 5 min", iconName: "flash" },
-    { value: "medium", label: "5-15 min", iconName: "hourglass" },
-    { value: "long", label: "> 15 min", iconName: "film" },
-  ];
+  { value: "all", label: "All", iconName: "infinite" },
+  { value: "short", label: "< 5 min", iconName: "flash" },
+  { value: "medium", label: "5-15 min", iconName: "hourglass" },
+  { value: "long", label: "> 15 min", iconName: "film" },
+];
 
 interface SearchFilterBarProps {
   channels: Channel[];
@@ -22,8 +22,8 @@ interface SearchFilterBarProps {
   onChannelChange: (channelId: string | null) => void;
   selectedDuration: DurationOption;
   onDurationChange: (duration: DurationOption) => void;
-  audioOnly?: boolean;
-  onAudioOnlyChange?: (value: boolean) => void;
+  pureOnly?: boolean;
+  onPureOnlyChange?: (value: boolean) => void;
 }
 
 export function SearchFilterBar({
@@ -32,8 +32,8 @@ export function SearchFilterBar({
   onChannelChange,
   selectedDuration,
   onDurationChange,
-  audioOnly = false,
-  onAudioOnlyChange,
+  pureOnly = false,
+  onPureOnlyChange,
 }: SearchFilterBarProps) {
   return (
     <View style={{ backgroundColor: colors.background.primary }}>
@@ -45,26 +45,26 @@ export function SearchFilterBar({
           paddingVertical: 8,
         }}
       >
-        {/* Audio Toggle */}
+        {/* Pure Toggle */}
         <Pressable
-          onPress={() => onAudioOnlyChange?.(!audioOnly)}
+          onPress={() => onPureOnlyChange?.(!pureOnly)}
           className="mr-2 px-3 py-1.5 rounded-full flex-row items-center"
           style={{
-            backgroundColor: audioOnly
+            backgroundColor: pureOnly
               ? colors.accent.primary
               : colors.background.tertiary,
           }}
         >
           <Ionicons
-            name="musical-note"
+            name="cut-outline"
             size={14}
-            color={audioOnly ? "#fff" : "#d4d4d8"}
+            color={pureOnly ? "#fff" : "#d4d4d8"}
           />
           <Text
             className="font-medium text-xs ml-1.5"
-            style={{ color: audioOnly ? "#fff" : "#d4d4d8" }}
+            style={{ color: pureOnly ? "#fff" : "#d4d4d8" }}
           >
-            Audio
+            Pure
           </Text>
         </Pressable>
 
