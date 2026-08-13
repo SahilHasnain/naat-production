@@ -227,6 +227,20 @@ export class AppwriteService implements IAppwriteService {
   }
 
   /**
+   * Increments the in-app view count (appView) for a naat.
+   * Fire-and-forget: never throws, so playback is never interrupted.
+   */
+  async incrementAppView(naatId: string): Promise<void> {
+    if (!naatId) return;
+
+    try {
+      await this.baseService.incrementAppView(naatId);
+    } catch (error: any) {
+      console.log("[appwrite] incrementAppView failed (non-fatal):", error);
+    }
+  }
+
+  /**
    * Performs semantic search using AI-powered function
    */
   async semanticSearch(query: string): Promise<Naat[]> {

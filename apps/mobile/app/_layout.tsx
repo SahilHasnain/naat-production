@@ -4,12 +4,10 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import Pressable from "@/components/ResponsivePressable";
+import ReviewPromptModal from "@/components/ReviewPromptModal";
 import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
-import {
-  FilterModalProvider,
-  useFilterModal,
-} from "@/contexts/FilterModalContext";
+import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import {
   HeaderVisibilityProvider,
   useHeaderVisibility,
@@ -33,6 +31,7 @@ import {
 import { VideoProvider } from "@/contexts/VideoContext";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
@@ -69,16 +68,18 @@ function RootLayoutContent() {
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
-  const { setShowFilterModal } = useFilterModal();
   const insets = useSafeAreaInsets();
   const {
     isSearchActive,
-    activateSearch,
     deactivateSearch,
     searchInput,
     setSearchInput,
     submitSearch,
+    searchFocusNonce,
+    requestSearchFocus,
   } = useSearchContext();
+
+  const reviewPrompt = useReviewPrompt();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -152,20 +153,9 @@ function RootLayoutContent() {
         <AnimatedHeader
           translateY={headerTranslateY}
           isScrolledDown={isScrolledDownValue}
-          selectedSort="forYou"
-          selectedChannelId={null}
-          selectedDuration="all"
-          channels={[]}
-          onFilterPress={() => setShowFilterModal(true)}
-          onSearchPress={() => {
-            activateSearch();
-            if (!isOnHomepage) {
-              router.push("/home");
-            }
-          }}
-          disableFilter={!isOnHomepage || isSearchActive}
           isSearchActive={isSearchActive}
           searchInput={searchInput}
+          searchFocusNonce={searchFocusNonce}
           onSearchInputChange={setSearchInput}
           onSearchSubmit={() => {
             const trimmed = searchInput.trim();
@@ -190,6 +180,12 @@ function RootLayoutContent() {
             {...props}
             translateY={translateY}
             networkIndicatorOffset={networkIndicatorOffset}
+            onSearchTabPress={() => {
+              requestSearchFocus();
+              if (!isOnHomepage) {
+                router.push("/home");
+              }
+            }}
           />
         )}
       >
@@ -207,9 +203,36 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="best"
+          options={{
+            title: "Best",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "trophy" : "trophy-outline"}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: "Search",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "search" : "search-outline"}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="live"
           options={{
             title: "Live",
+            href: null,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "radio" : "radio-outline"}
@@ -308,6 +331,14 @@ function RootLayoutContent() {
           />
         )}
 
+      {/* In-app review prompt */}
+      <ReviewPromptModal
+        visible={reviewPrompt.visible}
+        onClose={reviewPrompt.onClose}
+        onRate={reviewPrompt.onRate}
+        onSnooze={reviewPrompt.onSnooze}
+        onNever={reviewPrompt.onNever}
+      />
 
       {/* Connection status bar — sits below tab bar, above system nav */}
       {(!isConnected || showBackOnline) && (
@@ -449,6 +480,30 @@ function RootLayoutContent() {
             </LinearGradient>
           </View>
         </>
+      )}
+
+      {__DEV__ && (
+        <Pressable
+          onPress={() => {
+            void reviewPrompt.forceShowForTest();
+          }}
+          style={{
+            position: "absolute",
+            top: insets.top + 8,
+            left: 8,
+            backgroundColor: "#e65100",
+            paddingVertical: 3,
+            paddingHorizontal: 8,
+            borderRadius: 4,
+            zIndex: 2000,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Force show review prompt"
+        >
+          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+            🗄️ Dev
+          </Text>
+        </Pressable>
       )}
     </>
   );

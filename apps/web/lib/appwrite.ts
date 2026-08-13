@@ -24,6 +24,8 @@ const env = {
   AUDIO_STREAMING_FUNCTION_URL:
     process.env.NEXT_PUBLIC_AUDIO_STREAMING_FUNCTION_URL,
   RAPIDAPI_KEY: process.env.NEXT_PUBLIC_RAPIDAPI_KEY,
+  APPWRITE_VIEW_INCREMENT_FUNCTION_URL:
+    process.env.NEXT_PUBLIC_APPWRITE_VIEW_INCREMENT_FUNCTION_URL,
 };
 
 export const appwriteConfig = createAppwriteConfig(env);

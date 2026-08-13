@@ -12,6 +12,7 @@ import Pressable from "./ResponsivePressable";
 interface AnimatedTabBarProps extends BottomTabBarProps {
   translateY: SharedValue<number>;
   networkIndicatorOffset: SharedValue<number>;
+  onSearchTabPress?: () => void;
 }
 
 export function AnimatedTabBar({
@@ -20,6 +21,7 @@ export function AnimatedTabBar({
   navigation,
   translateY,
   networkIndicatorOffset,
+  onSearchTabPress,
 }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
@@ -33,6 +35,7 @@ export function AnimatedTabBar({
   // Filter out routes that should be hidden
   const visibleRoutes = state.routes.filter((route) => {
     return (
+      route.name !== "live" &&
       route.name !== "video" &&
       route.name !== "player" &&
       route.name !== "naat" &&
@@ -85,6 +88,12 @@ export function AnimatedTabBar({
         const isFocused = state.index === index;
 
         const onPress = () => {
+          // The Search tab is an action, not a screen: focus the global search bar.
+          if (route.name === "search") {
+            onSearchTabPress?.();
+            return;
+          }
+
           const event = navigation.emit({
             type: "tabPress",
             target: route.key,

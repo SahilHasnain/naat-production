@@ -246,6 +246,7 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
+                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
@@ -305,6 +306,7 @@ export default function HistoryScreen() {
                     text: "Play Video",
                     onPress: () => {
                       // Navigate to video mode without changing preference
+                      void appwriteService.incrementAppView(naat.$id).catch(() => {});
                       router.push({
                         pathname: "/video",
                         params: {
@@ -339,6 +341,7 @@ export default function HistoryScreen() {
         };
 
         await loadAndPlay(audioMetadata);
+        void appwriteService.incrementAppView(naat.$id).catch(() => {});
       } catch (err) {
         // Error loading audio - ask user before falling back to video
         console.error("Failed to load audio:", err);
@@ -360,6 +363,7 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
+                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
@@ -399,6 +403,7 @@ export default function HistoryScreen() {
 
         // If user prefers video mode, navigate to video screen
         if (savedMode === "video") {
+          void appwriteService.incrementAppView(naat.$id).catch(() => {});
           router.push({
             pathname: "/video",
             params: {
@@ -470,7 +475,9 @@ export default function HistoryScreen() {
     closeActionSheet();
 
     if (savedPlaybackMode === "audio") {
-      // Play as video
+      // Play as video and persist the new preference
+      await storageService.savePlaybackMode("video").catch(() => {});
+      void appwriteService.incrementAppView(selectedNaat.$id).catch(() => {});
       router.push({
         pathname: "/video",
         params: {
@@ -485,7 +492,8 @@ export default function HistoryScreen() {
         },
       });
     } else {
-      // Play as audio
+      // Play as audio and persist the new preference
+      await storageService.savePlaybackMode("audio").catch(() => {});
       await loadAudioDirectly(selectedNaat);
     }
   }, [closeActionSheet, savedPlaybackMode, selectedNaat, router, loadAudioDirectly]);

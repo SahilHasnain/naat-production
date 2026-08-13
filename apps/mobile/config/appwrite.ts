@@ -34,6 +34,7 @@ const env = {
   AUDIO_STREAMING_FUNCTION_URL: "",
   RAPIDAPI_KEY: "",
   SEMANTIC_SEARCH_FUNCTION_URL: "https://69a8e9000021d2eaafd9.sgp.appwrite.run",
+  APPWRITE_VIEW_INCREMENT_FUNCTION_URL: "",
 };
 
 console.log("[DEBUG] Appwrite Config Env:", {
