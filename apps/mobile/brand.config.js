@@ -41,6 +41,8 @@ module.exports = {
     // Used when Appwrite reads are rate-limited or unavailable.
     naatsUrl: "https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/naats-export.json",
     channelsUrl: "https://cdn.jsdelivr.net/gh/sahilhasnain/naat-production@main/static-exports/channels-export.json",
+    // In-app announcement banner source (served from this repo's static-exports).
+    appMessageUrl: "https://raw.githubusercontent.com/sahilhasnain/naat-production/main/static-exports/app-message.json",
   },
 
   // ── Sentry ────────────────────────────────────────────────────────────────
