@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "exportedAt": "2026-06-20T06:54:57.402Z",
-    "totalItems": 7,
+    "exportedAt": "2026-08-13T17:20:09.536Z",
+    "totalItems": 8,
     "version": "1.0",
     "source": "Appwrite Database",
     "expiresAt": null,
@@ -68,6 +68,22 @@
       "$sequence": 4,
       "$createdAt": "2026-04-02T06:53:57.944+00:00",
       "$updatedAt": "2026-04-02T06:53:57.944+00:00",
+      "$permissions": [],
+      "$databaseId": "69cdf9f4000f8532e829",
+      "$collectionId": "channels"
+    },
+    {
+      "channelId": "UCbbgJ-EH05HwinbdVawQj6g",
+      "channelName": "Hafiz Tahir Qadri",
+      "type": "channel",
+      "playlistId": null,
+      "naatCount": 0,
+      "lastUpdated": null,
+      "isOther": false,
+      "$id": "6a5f80410006558e81d1",
+      "$sequence": 10,
+      "$createdAt": "2026-07-21T14:20:52.635+00:00",
+      "$updatedAt": "2026-07-21T14:20:52.635+00:00",
       "$permissions": [],
       "$databaseId": "69cdf9f4000f8532e829",
       "$collectionId": "channels"
