@@ -18,6 +18,9 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+debug-ssh-key
+play-store-key.json
+encode-secrets.sh
 
 # Metro
 .metro-health-check*
@@ -52,14 +55,18 @@ training-data/naat
 training-data/explanation
 ref/secret.md
 inspiration/
-naat-collection_key.json
+play-store-key.json
 sentry.properties
-
-# secrets folder
 secrets/
 config.bat
-.env
 
 logs/
-.env
 .npm-cache/
+
+# youtube-upload working files (temp media, reels, bot profiles)
+reels-uploads/
+scripts/youtube-upload/temp/
+scripts/youtube-upload/temp-reels/
+scripts/youtube-upload/temp-instagram/
+scripts/youtube-upload/instagram-debug/
+scripts/youtube-upload/instagram-profile/
