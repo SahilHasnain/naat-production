@@ -59,3 +59,7 @@ sentry.properties
 secrets/
 config.bat
 .env
+
+logs/
+.env
+.npm-cache/
