@@ -160,7 +160,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPPLY_JSON_KEY: /tmp/play-store-key.json
-          ANDROID_APPLICATION_ID: com.owaisrazaqadri
+          ANDROID_APPLICATION_ID: com.naatproduction
           PLAY_TRACK: production
           SKIP_ANDROID_BUILD: "true"
           ANDROID_KEYSTORE_PATH: /tmp/release.keystore
