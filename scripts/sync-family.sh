@@ -75,6 +75,7 @@ SHARED_FILES=(
   "apps/web/postcss.config.mjs"
   "apps/web/eslint.config.mjs"
   "apps/web/README.md"
+  "cookies.txt"
 )
 
 # Brand-specific paths: skipped even if they live inside a SHARED_DIR.
@@ -106,7 +107,6 @@ BRAND_PATHS=(
   "apps/mobile/index.js"
   "apps/mobile/bootstrap.js"
   "apps/mobile/bootstrap.native.js"
-  "apps/mobile/bootstrap.web.js"
   # Root-level per-repo config
   "package.json"
   "tsconfig.json"

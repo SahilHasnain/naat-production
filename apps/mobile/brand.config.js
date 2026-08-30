@@ -50,6 +50,12 @@ module.exports = {
     enabled: true, // set false to disable the Sentry plugin (e.g. some family apps)
     org: "sahil-hasnain",
     project: "naat-production",
+    dsn: "",
+  },
+
+  features: {
+    useSemanticSearch: false,
+    disableSearchSuggestions: true,
   },
 
   // ── EAS ───────────────────────────────────────────────────────────────────
