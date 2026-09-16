@@ -13,13 +13,13 @@
 module.exports = {
   // ── App identity ──────────────────────────────────────────────────────────
   app: {
-    name: "Naatly",
+    name: "Voice of IDS",
     slug: "naat-production-app",
     scheme: "naatproduction",
     packageId: "com.naatproduction", // production package
     packageIdDev: "com.naatproduction.dev",
     packageIdPreview: "com.naatproduction.preview",
-    versionCode: 20,
+    versionCode: 21,
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "naatproduction.appwrite.network",
   },
