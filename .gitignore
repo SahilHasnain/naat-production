@@ -35,8 +35,13 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env*
 !.env.example
+
+# secrets & session cookies (never commit)
+cookies.txt
+**/cookies.txt
+**/youtube-cookies.txt
 
 # typescript
 *.tsbuildinfo
