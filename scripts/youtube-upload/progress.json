@@ -135,7 +135,8 @@
     "b8piPOuKD5c",
     "jxC9dJiTBBs",
     "QJW7dECEjTw",
-    "WiVwYZeU_aY"
+    "WiVwYZeU_aY",
+    "PBdw3dwfs70"
   ],
   "failed": [
     {
@@ -144,11 +145,11 @@
       "time": "2026-07-18T01:49:36.316Z"
     },
     {
-      "youtubeId": "PBdw3dwfs70",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:08.978Z"
+      "youtubeId": "8B05n9yB8Vo",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:08.546Z"
     }
   ],
   "today": 0,
-  "lastDate": "2026-09-16"
+  "lastDate": "2026-09-25"
 }

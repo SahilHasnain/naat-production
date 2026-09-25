@@ -254,7 +254,38 @@
     "h7nIbtN0F5s",
     "30OxHcKfdBw",
     "QKgZq1B-Ruw",
-    "riAmd-ZxcmI"
+    "riAmd-ZxcmI",
+    "TsHCHoNATJc",
+    "thKFa3kYJeg",
+    "jy0YoDrXm14",
+    "Gsa-pkPTHv4",
+    "A9HJxV5XF2k",
+    "JSww0cZFNUI",
+    "5bbjunpOBOc",
+    "FZPPj755IlQ",
+    "p8yzVbL7ER4",
+    "D7TR-huC5kY",
+    "vMwx6ZgCXcQ",
+    "4R9LtmlX17o",
+    "SI4XmIozUdg",
+    "-pC0jiCJaGU",
+    "fZsWogm96TE",
+    "Xgt3t7XsrJc",
+    "xgKtXNj8Sl8",
+    "nwPXF8z2faA",
+    "7SHFTMptq5I",
+    "7qfar9Bp6h0",
+    "Rr2M2pmgCCk",
+    "1D_uxZO29-E",
+    "IKvU-BJpsbk",
+    "rSA7dKAJnHo",
+    "L6lUAuogonM",
+    "IdxfS2DRaF8",
+    "QPlNpmbwnBk",
+    "JKKQfXSYy6Y",
+    "1qh5xCSRguY",
+    "mZLcJGbQ4KQ",
+    "T_8LS8XeVys"
   ],
   "failed": [
     {
@@ -263,56 +294,16 @@
       "time": "2026-07-18T01:47:33.456Z"
     },
     {
-      "youtubeId": "TsHCHoNATJc",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:14.814Z"
+      "youtubeId": "7p6F8WCGwcI",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:12.619Z"
     },
     {
-      "youtubeId": "thKFa3kYJeg",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:23.327Z"
-    },
-    {
-      "youtubeId": "jy0YoDrXm14",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:32.348Z"
-    },
-    {
-      "youtubeId": "Gsa-pkPTHv4",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:38.628Z"
-    },
-    {
-      "youtubeId": "A9HJxV5XF2k",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:43.965Z"
-    },
-    {
-      "youtubeId": "JSww0cZFNUI",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:49.189Z"
-    },
-    {
-      "youtubeId": "5bbjunpOBOc",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:54.428Z"
-    },
-    {
-      "youtubeId": "FZPPj755IlQ",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:59.901Z"
-    },
-    {
-      "youtubeId": "p8yzVbL7ER4",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:31:05.189Z"
-    },
-    {
-      "youtubeId": "D7TR-huC5kY",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:31:12.051Z"
+      "youtubeId": "AYh8SEMNZoI",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:17.824Z"
     }
   ],
   "today": 0,
-  "lastDate": "2026-09-16"
+  "lastDate": "2026-09-25"
 }

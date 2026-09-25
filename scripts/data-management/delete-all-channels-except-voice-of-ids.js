@@ -99,9 +99,11 @@ async function deleteChannelNaats(databases, storage, channel) {
 
   let totalDeleted = 0;
   let totalAudioDeleted = 0;
-  let offset = 0;
   const limit = 100;
 
+  // Delete in batches, always querying from offset 0. Deleting documents
+  // while paginating with an advancing offset causes the filtered result set
+  // to shift, stranding the tail of the collection on every pass.
   while (true) {
     const response = await databases.listDocuments(
       config.databaseId,
@@ -109,7 +111,7 @@ async function deleteChannelNaats(databases, storage, channel) {
       [
         Query.equal("channelId", channel.id),
         Query.limit(limit),
-        Query.offset(offset),
+        Query.offset(0),
       ],
     );
 
@@ -142,11 +144,6 @@ async function deleteChannelNaats(databases, storage, channel) {
         );
       }
     }
-
-    if (response.documents.length < limit) {
-      break;
-    }
-    offset += limit;
   }
 
   return { documents: totalDeleted, audioFiles: totalAudioDeleted };
