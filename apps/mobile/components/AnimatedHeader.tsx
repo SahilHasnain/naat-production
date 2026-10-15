@@ -2,6 +2,7 @@ import { colors } from "@/constants/theme";
 import { APP_NAME } from "@/config/brand";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -43,6 +44,7 @@ export function AnimatedHeader({
   const inputRef = useRef<TextInput>(null);
   const { layoutMode, toggleLayoutMode } = useLayoutMode();
   const { user } = useAuth();
+  const { preference, cycleTheme } = useTheme();
   const { isDesktopWeb } = useResponsiveLayout();
   const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
 
@@ -164,15 +166,38 @@ export function AnimatedHeader({
               </Text>
             </View>
 
-            {/* Layout mode toggle */}
+            {!isDesktopWeb && (
+              <>
+                {/* Layout mode toggle */}
+                <Pressable
+                  onPress={toggleLayoutMode}
+                  className="items-center justify-center rounded-full"
+                  accessibilityLabel={
+                    layoutMode === "grid"
+                      ? "Switch to YouTube layout"
+                      : "Switch to grid layout"
+                  }
+                  accessibilityRole="button"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    backgroundColor: colors.background.secondary,
+                  }}
+                >
+                  <Ionicons
+                    name={layoutMode === "grid" ? "list" : "grid"}
+                    size={20}
+                    color={colors.text.secondary}
+                  />
+                </Pressable>
+              </>
+            )}
+
             <Pressable
-              onPress={toggleLayoutMode}
-              className="items-center justify-center rounded-full"
-              accessibilityLabel={
-                layoutMode === "grid"
-                  ? "Switch to YouTube layout"
-                  : "Switch to grid layout"
-              }
+              onPress={cycleTheme}
+              className="ml-2 items-center justify-center rounded-full"
+              accessibilityLabel="Change theme"
               accessibilityRole="button"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={{
@@ -182,8 +207,14 @@ export function AnimatedHeader({
               }}
             >
               <Ionicons
-                name={layoutMode === "grid" ? "list" : "grid"}
-                size={20}
+                name={
+                  preference === "light"
+                    ? "sunny-outline"
+                    : preference === "dark"
+                      ? "moon-outline"
+                      : "contrast-outline"
+                }
+                size={18}
                 color={colors.text.secondary}
               />
             </Pressable>

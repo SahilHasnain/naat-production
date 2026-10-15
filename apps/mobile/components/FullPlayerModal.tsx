@@ -2,6 +2,14 @@ import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+  clearPendingVoiceTransform,
+  getPendingVoiceTransform,
+  getVoiceUrl,
+  startVoiceTransform,
+  watchVoiceTransform,
+  type VoicePreset,
+} from "@/services/voiceTransform";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
@@ -9,7 +17,8 @@ import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
-import React, { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -37,6 +46,23 @@ const formatTime = (millis: number): string => {
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
+
+const getVoiceTransformStage = (progress: number): string => {
+  if (progress < 10) return "Queued";
+  if (progress < 35) return "Downloading audio";
+  if (progress < 85) return "Processing audio";
+  return "Uploading transformed audio";
+};
+
+const getVoicePresetLabel = (preset: VoicePreset): string => {
+  if (preset === "subtle") return "Adult";
+  if (preset === "younger") return "Young Adult";
+  return "Teenage";
+};
+
+const voicePresetPreferenceKey = (trackId: string) =>
+  `@voice_preset_preference:${trackId}`;
+const VOICE_PRESETS: VoicePreset[] = ["subtle", "younger", "high"];
 
 interface WebVolumeSliderProps {
   value: number;
@@ -89,6 +115,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     abRepeatPointA,
     abRepeatPointB,
     isABRepeatActive,
+    loadAndPlay,
     togglePlayPause,
     seek,
     setVolume,
@@ -107,6 +134,14 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
   const [isExportingAB, setIsExportingAB] = useState(false);
   const [hasExportedAB, setHasExportedAB] = useState(false);
+  const [voicePreset, setVoicePreset] = useState<VoicePreset | null>(null);
+  const [isTransformingVoice, setIsTransformingVoice] = useState(false);
+  const [voiceTransformProgress, setVoiceTransformProgress] = useState(0);
+  const [voiceTransformRefresh, setVoiceTransformRefresh] = useState(0);
+  const menuItemStyle = [
+    styles.menuItem,
+    { borderBottomColor: colors.border.menuDivider },
+  ];
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -126,6 +161,42 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setIsABRepeatMode(false);
     setHasExportedAB(false);
   }, [currentAudio]);
+
+  useEffect(() => {
+    setVoicePreset(null);
+    setIsTransformingVoice(false);
+    setVoiceTransformProgress(0);
+  }, [currentAudio?.naatId]);
+
+  useEffect(() => {
+    const audio = currentAudio;
+    const audioId = audio?.voiceSourceAudioId ?? audio?.audioId;
+    if (!audio || !audioId || audio.isLocalFile) return;
+    let stopWatching: (() => void) | undefined;
+    let cancelled = false;
+
+    const resumePendingJob = async () => {
+      const pending = await getPendingVoiceTransform(audioId);
+      if (!pending || cancelled) return;
+      setIsTransformingVoice(true);
+      setVoicePreset(pending.voicePreset);
+      stopWatching = watchVoiceTransform(pending.jobId, async (job) => {
+        if (job.status === "done" && job.outputAudioId) {
+          await clearPendingVoiceTransform(pending.key);
+          setIsTransformingVoice(false);
+          if (cancelled) return;
+          await loadAndPlay({ ...audio, audioId: job.outputAudioId, voiceSourceAudioId: audioId, audioUrl: getVoiceUrl(job.outputAudioId), isLocalFile: false });
+          showSuccessToast(`${getVoicePresetLabel(pending.voicePreset)} tone is ready`);
+        } else if (job.status === "failed") {
+          await clearPendingVoiceTransform(pending.key);
+          setIsTransformingVoice(false);
+          if (!cancelled) showErrorToast(job.error || "Voice transformation failed");
+        }
+      });
+    };
+    void resumePendingJob();
+    return () => { cancelled = true; stopWatching?.(); };
+  }, [currentAudio?.audioId, voiceTransformRefresh]);
 
   const handleDownload = async () => {
     if (!currentAudio?.audioId || currentAudio.isLocalFile || isDownloaded) {
@@ -159,6 +230,111 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handleVoiceTransform = async (preset: VoicePreset) => {
+    const audio = currentAudio;
+    const sourceAudioId = audio?.voiceSourceAudioId ?? audio?.audioId;
+    if (!audio || !sourceAudioId || audio.isLocalFile) return;
+    if (isTransformingVoice) {
+      showInfoToast("Please wait for the current transformation to finish.");
+      return;
+    }
+
+    try {
+      setIsTransformingVoice(true);
+      setVoicePreset(preset);
+      setShowOptionsMenu(false);
+      await AsyncStorage.setItem(
+        voicePresetPreferenceKey(audio.naatId ?? sourceAudioId),
+        preset,
+      );
+      await startVoiceTransform(sourceAudioId, preset);
+      setVoiceTransformRefresh((value) => value + 1);
+      showInfoToast("Voice conversion started in the background.");
+    } catch (error) {
+      setIsTransformingVoice(false);
+      console.error("Voice transformation failed:", error);
+      showErrorToast(error instanceof Error ? error.message : "Voice transformation failed");
+    }
+  };
+
+  const handleVoiceTransformRef = useRef(handleVoiceTransform);
+  handleVoiceTransformRef.current = handleVoiceTransform;
+  const autoAppliedVoiceTrackRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const audio = currentAudio;
+    const audioId = audio?.audioId;
+    const trackKey = audio?.naatId ?? audioId;
+    if (
+      !audio ||
+      !audioId ||
+      !trackKey ||
+      audio.isLocalFile ||
+      audio.voiceSourceAudioId ||
+      autoAppliedVoiceTrackRef.current === trackKey
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const applySavedVoicePreset = async () => {
+      const savedPreset = await AsyncStorage.getItem(
+        voicePresetPreferenceKey(trackKey),
+      );
+      if (cancelled) return;
+
+      if (!VOICE_PRESETS.includes(savedPreset as VoicePreset)) {
+        autoAppliedVoiceTrackRef.current = trackKey;
+        return;
+      }
+
+      autoAppliedVoiceTrackRef.current = trackKey;
+      void handleVoiceTransformRef.current(savedPreset as VoicePreset);
+    };
+
+    void applySavedVoicePreset().catch((error) => {
+      autoAppliedVoiceTrackRef.current = trackKey;
+      console.error("Failed to restore voice tone preference:", error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAudio]);
+
+  const handlePlayOriginal = async () => {
+    const audio = currentAudio;
+    const sourceAudioId = audio?.voiceSourceAudioId;
+    if (!audio || !sourceAudioId) return;
+
+    setVoicePreset(null);
+    await AsyncStorage.removeItem(
+      voicePresetPreferenceKey(audio.naatId ?? sourceAudioId),
+    );
+    await loadAndPlay({
+      ...audio,
+      audioId: sourceAudioId,
+      audioUrl: getVoiceUrl(sourceAudioId),
+      voiceSourceAudioId: undefined,
+    });
+  };
+
+  const handleVoicePresetPress = (preset: VoicePreset) => {
+    if (isTransformingVoice) {
+      showInfoToast("Please wait for the current transformation to finish.");
+      return;
+    }
+
+    if (
+      currentAudio?.voiceSourceAudioId &&
+      voicePreset === preset
+    ) {
+      void handlePlayOriginal();
+      return;
+    }
+
+    void handleVoiceTransform(preset);
   };
 
   const handleDeleteDownload = () => {
@@ -424,9 +600,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         handleDownload();
                       }
                     }}
-                    style={styles.menuItem}
+                    style={menuItemStyle}
                   >
-                    <View style={styles.menuItemIcon}>
+                    <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
                       <Ionicons
                         name={
                           isDownloaded
@@ -446,7 +622,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.menuItemText}>
+                      <Text style={[styles.menuItemText, { color: colors.text.primary }] }>
                         {isDownloaded
                           ? "Delete Download"
                           : isDownloading
@@ -454,7 +630,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                             : "Download"}
                       </Text>
                       {isDownloading && (
-                        <Text style={styles.menuItemSubtext}>
+                        <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
                           {Math.round(downloadProgress * 100)}% complete
                         </Text>
                       )}
@@ -472,28 +648,78 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       currentAudio.naatId,
                     );
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
-                  <View style={styles.menuItemIcon}>
+                  <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
                     <Ionicons
                       name="arrow-redo-outline"
                       size={20}
                       color={colors.text.secondary}
                     />
                   </View>
-                  <Text style={styles.menuItemText}>Share</Text>
+                  <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Share</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => void handleVoiceTransform("subtle")}
+                  style={[...menuItemStyle, { borderBottomWidth: 0 }]}
+                >
+                  <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
+                    <Ionicons
+                      name="sparkles-outline"
+                      size={20}
+                      color={colors.accent.tabActive}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Voice tone</Text>
+                    <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
+                      {isTransformingVoice
+                        ? "Processing..."
+                        : voicePreset
+                          ? `${getVoicePresetLabel(voicePreset)} selected`
+                          : "Choose a voice tone"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.voicePresetRow}>
+                  {(["subtle", "younger", "high"] as VoicePreset[]).map((preset) => (
+                    <TouchableOpacity
+                      key={preset}
+                      onPress={() => handleVoicePresetPress(preset)}
+                      style={[
+                        styles.voicePresetButton,
+                        { backgroundColor: colors.background.tertiary },
+                        voicePreset === preset && {
+                          backgroundColor: colors.accent.tabActive,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.voicePresetText,
+                          { color: colors.text.primary },
+                          voicePreset === preset && { color: colors.text.inverse },
+                        ]}
+                      >
+                        {getVoicePresetLabel(preset)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
                 <TouchableOpacity
                   onPress={() => {
                     toggleRepeat();
                     setShowOptionsMenu(false);
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isRepeatEnabled && {
                         backgroundColor: colors.accent.primary + "20",
                       },
@@ -511,7 +737,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                   <Text
                     style={[
-                      styles.menuItemText,
+                       styles.menuItemText,
+                       { color: colors.text.primary },
                       isRepeatEnabled && { color: colors.accent.primary },
                     ]}
                   >
@@ -524,11 +751,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     toggleAutoplay();
                     setShowOptionsMenu(false);
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isAutoplayEnabled && {
                         backgroundColor: colors.accent.secondary + "20",
                       },
@@ -546,7 +774,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                   <Text
                     style={[
-                      styles.menuItemText,
+                       styles.menuItemText,
+                       { color: colors.text.primary },
                       isAutoplayEnabled && { color: colors.accent.secondary },
                     ]}
                   >
@@ -564,6 +793,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isABRepeatMode && {
                         backgroundColor: colors.accent.primary + "20",
                       },
@@ -582,14 +812,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[
-                        styles.menuItemText,
+                         styles.menuItemText,
+                         { color: colors.text.primary },
                         isABRepeatMode && { color: colors.accent.primary },
                       ]}
                     >
                       A/B Repeat
                     </Text>
                     {bothPointsSet && (
-                      <Text style={styles.menuItemSubtext}>Loop active</Text>
+                      <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }]}>Loop active</Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -642,9 +873,14 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             </View>
           ) : (
             <View style={styles.content}>
-              <View style={styles.artworkArea}>
+              <View style={[styles.artworkArea, isDesktopWeb && styles.artworkAreaDesktopWeb]}>
                 <View style={styles.artworkContainer}>
-                  <View style={styles.artworkShadow}>
+                  <View
+                    style={[
+                      styles.artworkShadow,
+                      isDesktopWeb && styles.artworkShadowDesktopWeb,
+                    ]}
+                  >
                     <Image
                       source={{ uri: currentAudio.thumbnailUrl }}
                       style={styles.artwork}
@@ -655,15 +891,53 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                 </View>
 
-                <View style={styles.infoSection}>
-                  <Text numberOfLines={2} style={styles.title}>
+                <View
+                  style={[
+                    styles.infoSection,
+                    isDesktopWeb && styles.infoSectionDesktopWeb,
+                  ]}
+                >
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.title,
+                      { color: colors.text.primary },
+                      isDesktopWeb && styles.titleDesktopWeb,
+                    ]}
+                  >
                     {currentAudio.title}
                   </Text>
+                  {currentAudio.voiceSourceAudioId && voicePreset && !isDesktopWeb && (
+                    <View
+                      style={[
+                        styles.voiceVariantIndicator,
+                        isDesktopWeb && styles.voiceVariantIndicatorDesktopWeb,
+                      ]}
+                    >
+                      <Text style={styles.voiceVariantLabel}>
+                        {getVoicePresetLabel(voicePreset)} tone
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => void handlePlayOriginal()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Play original audio"
+                        activeOpacity={0.7}
+                        style={styles.originalButton}
+                      >
+                        <Text style={styles.originalButtonText}>Original</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
 
               <View style={styles.controlsArea}>
-                <View style={styles.progressSection}>
+                <View
+                  style={[
+                    styles.progressSection,
+                    isDesktopWeb && styles.progressSectionDesktopWeb,
+                  ]}
+                >
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
@@ -709,6 +983,28 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </View>
 
                 <View style={styles.transportControls}>
+                  {isDesktopWeb && currentAudio.voiceSourceAudioId && voicePreset && (
+                    <View
+                      style={[
+                        styles.voiceVariantIndicator,
+                        styles.voiceVariantIndicatorDesktopWeb,
+                        styles.voiceVariantIndicatorTransport,
+                      ]}
+                    >
+                      <Text style={styles.voiceVariantLabel}>
+                        {getVoicePresetLabel(voicePreset)} tone
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => void handlePlayOriginal()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Play original audio"
+                        activeOpacity={0.7}
+                        style={styles.originalButton}
+                      >
+                        <Text style={styles.originalButtonText}>Original</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   <TouchableOpacity
                     onPress={seekBackward}
                     style={styles.transportButton}
@@ -925,13 +1221,14 @@ const styles = StyleSheet.create({
   },
   headerDesktopWeb: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    left: "18%",
+    right: "10%",
     zIndex: 10,
     justifyContent: "space-between",
+    paddingHorizontal: 0,
   },
   headerDesktopWebPosition: {
-    top: 0,
+    top: 20,
   },
   headerActions: {
     flexDirection: "row",
@@ -1021,13 +1318,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border.secondary,
+    borderBottomColor: colors.border.menuDivider,
   },
   menuItemLast: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  voicePresetRow: {
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  voicePresetButton: {
+    flex: 1,
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 8,
+    backgroundColor: colors.background.tertiary,
+  },
+  voicePresetText: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  voiceProgressTrack: {
+    height: 4,
+    overflow: "hidden",
+    borderRadius: 2,
+    marginTop: 6,
+    backgroundColor: colors.background.tertiary,
+  },
+  voiceProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: colors.accent.tabActive,
+  },
+  voiceTransformBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.secondary,
+  },
+  voiceTransformBannerIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    marginRight: 10,
+    borderRadius: 16,
+    backgroundColor: colors.background.elevated,
+  },
+  voiceTransformBannerContent: {
+    flex: 1,
+  },
+  voiceTransformBannerTitle: {
+    color: colors.text.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  voiceTransformBannerSubtext: {
+    marginTop: 2,
+    color: colors.text.tertiary,
+    fontSize: 11,
   },
   menuItemIcon: {
     alignItems: "center",
@@ -1067,6 +1427,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  artworkAreaDesktopWeb: {
+    justifyContent: "flex-start",
+    marginTop: -52,
+    paddingTop: 12,
+  },
   artworkContainer: {
     width: "100%",
     alignItems: "center",
@@ -1077,6 +1442,9 @@ const styles = StyleSheet.create({
     width: "88%",
     aspectRatio: 16 / 9,
     ...shadows.lg,
+  },
+  artworkShadowDesktopWeb: {
+    width: "60%",
   },
   artwork: {
     width: "100%",
@@ -1089,6 +1457,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 8,
   },
+  infoSectionDesktopWeb: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  titleDesktopWeb: {
+    flex: 1,
+  },
   title: {
     fontSize: 20,
     fontWeight: "700",
@@ -1097,10 +1472,50 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     letterSpacing: -0.3,
   },
+  voiceVariantIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 10,
+  },
+  voiceVariantIndicatorDesktopWeb: {
+    flexDirection: "row",
+    marginTop: 0,
+    marginLeft: 16,
+  },
+  voiceVariantIndicatorTransport: {
+    position: "absolute",
+    right: "25%",
+    top: 0,
+    bottom: 0,
+    marginLeft: 0,
+    justifyContent: "center",
+  },
+  voiceVariantLabel: {
+    color: colors.accent.tabActive,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  originalButton: {
+    borderColor: colors.accent.tabActive,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  originalButtonText: {
+    color: colors.accent.tabActive,
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
   progressSection: {
     width: "100%",
     marginBottom: 4,
+  },
+  progressSectionDesktopWeb: {
+    width: "60%",
+    alignSelf: "center",
   },
   controlsArea: {
     paddingBottom: 8,
@@ -1119,8 +1534,8 @@ const styles = StyleSheet.create({
   desktopVolumeControl: {
     position: "absolute",
     top: 0,
-    right: 8,
-    bottom: 0,
+    right: "18%",
+    bottom: 20,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
@@ -1166,6 +1581,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.error,
   },
   transportControls: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
